@@ -1,0 +1,97 @@
+@startuml skripsi_checkout_activity
+title Activity Diagram — Proses Checkout\nPelanggan, keranjang hingga pembayaran
+
+skinparam ActivityFontSize 12
+skinparam TitleFontSize 14
+skinparam Padding 8
+
+|Pelanggan|
+start
+:Membuka keranjang belanja;
+:Meninjau baris item\nmengatur jumlah atau menghapus;
+:Menekan checkout;
+
+|Client|
+if (Keranjang masih berisi barang?) then (tidak)
+  :Menampilkan peringatan keranjang kosong;
+  stop
+else (ya)
+endif
+:Menampilkan langkah data pemesanan;
+
+|Pelanggan|
+:Mengisi penerima alamat wilayah kurir\nongkir dan catatan;
+:Menekan lanjut pembayaran dan mengonfirmasi;
+
+|Client|
+:Memvalidasi formulir pemesanan\nnama telepon alamat wilayah kurir;
+if (Formulir lolos validasi?) then (tidak)
+  :Menampilkan pesan kesalahan pada bidang;
+  stop
+else (ya)
+endif
+
+:Meminta pembuatan pesanan ke server;
+
+|Server|
+if (Permintaan dari tamu?) then (ya)
+  if (Data pesanan memenuhi syarat?) then (tidak)
+    :Mengembalikan jawaban kesalahan;
+    |Client|
+    :Menampilkan notifikasi gagal;
+    stop
+  else (ya)
+    |Database|
+    :Mencatat pesanan baru;
+    |Server|
+    :Menyusun jawaban sukses berisi identitas pesanan;
+    |Client|
+    :Mengosongkan keranjang tamu;
+    :Membuka halaman ringkasan pesanan;
+    stop
+  endif
+else (pengguna login)
+  if (Sesi pengguna sah?) then (tidak)
+    :Mengembalikan jawaban butuh masuk akun;
+    |Client|
+    :Menampilkan notifikasi sesi;
+    stop
+  else (ya)
+    |Database|
+    :Mencatat pesanan beserta baris item dan ongkir;
+    |Server|
+    :Menyusun jawaban sukses berisi nomor pesanan;
+    |Client|
+    :Menerima jawaban dari server;
+    :Menampilkan langkah opsi pembayaran;
+
+    if (Memilih pembayaran lewat Snap Midtrans?) then (tidak)
+      |Pelanggan|
+      :Membayar dengan transfer manual\nmengunggah bukti bila perlu;
+    else (ya)
+      |Client|
+      :Meminta token pembayaran Snap kepada server;
+      |Server|
+      :Menghubungi Midtrans untuk menerbitkan token;
+      |Mitra Pembayaran|
+      :Memproses permintaan token transaksi;
+      |Server|
+      :Meneruskan token dalam jawaban ke klien;
+      |Client|
+      :Membuka jendela Snap pembayaran;
+      |Pelanggan|
+      :Menyelesaikan VA QRIS atau dompet digital;
+      if (Hasil dianggap sukses?) then (ya)
+        |Client|
+        :Mengalihkan ke daftar transaksi;
+      else (tidak atau tertunda)
+        |Client|
+        :Menampilkan status pending atau gagal;
+      endif
+    endif
+  endif
+endif
+
+stop
+
+@enduml

@@ -1,0 +1,109 @@
+@startuml skripsi_terima_notifikasi_push_sequence
+title Sequence Diagram — Terima Notifikasi Push\nBagian pertama — izin dan langganan
+
+skinparam SequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor Pelanggan as pengguna
+participant "AntarmukaAktifkanPush" as prompt
+participant "Peramban\nizin dan PushManager" as browser
+participant "ServiceWorkerPush\nsw-push.js" as sw
+participant "RuteLangganan\nPOST /api/push/subscribe" as subRoute
+participant "BasisData" as db
+
+pengguna -> prompt: Meminta mengaktifkan notifikasi
+activate prompt
+
+prompt -> prompt: Memastikan sesi pelanggan\nsudah masuk akun
+
+alt Tidak masuk akun
+  prompt -> pengguna: Tidak melanjutkan
+  deactivate prompt
+else Masuk akun
+  prompt -> browser: Meminta izin menampilkan notifikasi
+  activate browser
+
+  alt Izin ditolak atau tidak didukung
+    browser --> prompt: Tidak dapat berlangganan
+    deactivate browser
+    prompt -> pengguna: Berhenti tanpa langganan
+  else Izin diberikan
+    prompt -> sw: Mendaftarkan pekerja latar\nbila belum menguasai halaman
+    activate sw
+    sw --> prompt: Registrasi siap
+    deactivate sw
+
+    browser -> browser: Membuat objek langganan push\nmenggunakan kunci aplikasi publik
+
+    prompt -> subRoute: Mengirim endpoint dan kunci\nlangganan ke server
+    activate subRoute
+
+    subRoute -> subRoute: Memverifikasi sesi pengguna
+
+    alt Data langganan tidak lengkap atau sesi gagal
+      subRoute --> prompt: Respons ditolak
+      deactivate subRoute
+      prompt -> pengguna: Gagal menyimpan langganan
+    else Permintaan sah
+      subRoute -> db: Menyimpan atau memperbarui\ntitik akhir dan kunci rahasia
+      activate db
+      db --> subRoute: Tersimpan
+      deactivate db
+
+      subRoute --> prompt: Langganan aktif
+      deactivate subRoute
+
+      prompt -> pengguna: Status berlangganan diperbarui
+    end
+  end
+end
+
+deactivate prompt
+
+newpage
+title Sequence Diagram — Terima Notifikasi Push\nBagian kedua — server ke layar perangkat
+
+actor Pelanggan as pengguna2
+participant "JalurBisnisAplikasi\npersetujuan pesanan pengingat" as biz
+participant "ModulKirimPush\nsendPushToUser" as pushMod
+participant "BasisData" as db2
+participant "PenyalurPushWeb\ninfrastruktur peramban" as pushNet
+participant "ServiceWorkerPush\nsw-push.js" as sw2
+
+biz -> pushMod: Meminta mengirim pesan\nke pengguna tertentu
+activate pushMod
+
+pushMod -> db2: Mengambil semua langganan push\nmilik pengguna itu
+activate db2
+db2 --> pushMod: Daftar titik akhir
+deactivate db2
+
+alt Tidak ada langganan atau kunci VAPID tidak disetel
+  pushMod --> biz: Tidak ada kiriman
+  deactivate pushMod
+else Ada langganan
+  loop Untuk setiap titik akhir
+    pushMod -> pushNet: Mengirim muatan notifikasi\ndengan tanda keamanan VAPID
+    activate pushNet
+
+    pushNet --> sw2: Meneruskan peristiwa push\nke perangkat pelanggan
+    deactivate pushNet
+    activate sw2
+
+    sw2 -> sw2: Membaca judul isi data URL\nmemanggil tampilan notifikasi sistem
+
+    sw2 --> pengguna2: Notifikasi muncul\ndi bilah sistem
+
+    opt Pelanggan mengetuk notifikasi
+      pengguna2 -> sw2: Peristiwa klik
+      sw2 -> sw2: Menutup notifikasi\nmencari jendela aplikasi atau membuka URL
+      sw2 --> pengguna2: Fokus atau tab baru\nmenuju halaman terkait
+    end
+
+    deactivate sw2
+  end
+
+  deactivate pushMod
+end
+
+@enduml

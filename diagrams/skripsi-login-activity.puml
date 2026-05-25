@@ -1,0 +1,40 @@
+  @startuml skripsi_login_activity
+  title Activity Diagram — Login\nPelanggan, halaman masuk
+
+  skinparam ActivityFontSize 12
+  skinparam TitleFontSize 14
+
+  |Pelanggan|
+  start
+  :Membuka halaman login;
+
+  |Client|
+  :Menampilkan form email, password, dan tombol Masuk;
+
+  while (Login belum berhasil?) is (ya)
+    |Pelanggan|
+    :Memasukkan email dan password;
+    :Menekan tombol Masuk;
+    |Client|
+    :Mengirim data login ke server\nuntuk pemeriksaan;
+    |Server|
+    :Memproses permintaan masuk;
+    |Database|
+    :Mencari data pengguna berdasarkan email;
+    |Server|
+    :Memeriksa apakah kata sandi benar;
+    if (Email dan password dikenali?) then (ya)
+      :Mencatat sesi pengguna telah masuk;
+      |Client|
+      :Menampilkan notifikasi login berhasil;
+      :Mengalihkan ke beranda\natau halaman sebelum diminta login;
+      break
+    else (tidak)
+      |Client|
+      :Menampilkan pesan kesalahan\nEmail atau password salah;
+    endif
+  endwhile
+
+  stop
+
+  @enduml

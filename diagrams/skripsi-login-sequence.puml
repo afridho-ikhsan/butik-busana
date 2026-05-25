@@ -1,0 +1,47 @@
+@startuml skripsi_login_sequence
+title Sequence Diagram — Login\nPelanggan, halaman login
+
+skinparam SequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor Pelanggan as pengguna
+participant "HalamanLogin" as ui
+participant "SesiNextAuth\nsignIn klien" as authCli
+participant "AlurKredensial\nNextAuth server" as authSrv
+database "BasisData" as db
+
+pengguna -> ui: Mengisi email dan kata sandi\nmenekan tombol Masuk
+activate ui
+
+ui -> authCli: login memanggil signIn\ndengan redirect nonaktif
+activate authCli
+
+authCli -> authSrv: Mengirim email dan kata sandi\nuntuk pemeriksaan
+activate authSrv
+
+authSrv -> db: Mengambil rekaman pengguna\nsesuai email
+activate db
+db --> authSrv: Data pengguna atau tidak ada
+deactivate db
+
+alt Kredensial ditolak
+  authSrv -> authSrv: Tidak ada kecocokan pengguna\natau kata sandi
+  authSrv --> authCli: Jawaban galat otentikasi
+  deactivate authSrv
+  authCli --> ui: signIn mengembalikan error
+  deactivate authCli
+  ui -> pengguna: Notifikasi email atau password salah
+else Kredensial diterima
+  authSrv -> authSrv: Menyusun profil sesi\ndan kuki keamanan
+  authSrv --> authCli: Jawaban sukses
+  deactivate authSrv
+  authCli --> ui: result.ok benar
+  deactivate authCli
+  ui -> pengguna: Notifikasi login berhasil
+  ui -> ui: Navigasi ke callbackUrl\natau beranda
+  ui -> pengguna: Halaman tujuan tampil
+end
+
+deactivate ui
+
+@enduml

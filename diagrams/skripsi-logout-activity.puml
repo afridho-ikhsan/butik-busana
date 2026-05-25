@@ -1,0 +1,29 @@
+@startuml skripsi_logout_activity
+title Activity Diagram — Logout\nPelanggan, komponen logout-button
+
+skinparam ActivityFontSize 12
+skinparam TitleFontSize 14
+
+|Pelanggan|
+start
+:Menekan tombol Logout\ncatatan hanya jika sesi anggota aktif;
+
+|Client|
+:Menampilkan dialog konfirmasi keluar;
+
+|Pelanggan|
+if (Memilih konfirmasi keluar?) then (tidak)
+  |Client|
+  :Menutup dialog tanpa mengubah sesi;
+  stop
+else (ya)
+  |Client|
+  :Mengirim permintaan pengakhiran sesi;
+  |Server|
+  :Mengakhiri sesi pengguna\nmenghapus jejak sesi di peramban;
+  |Client|
+  :Mengganti lokasi jendela\nke URL beranda;
+  stop
+endif
+
+@enduml

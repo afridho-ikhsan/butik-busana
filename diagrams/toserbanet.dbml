@@ -1,0 +1,122 @@
+Project toserbanet_usecases {
+  database_type: "PostgreSQL"
+  Note: "Hanya domain terkait use case skripsi. MongoDB (Prisma) disetarakan relasional."
+}
+
+Enum payment_status {
+  NOT_PAID
+  PAID
+}
+
+Table roles {
+  id varchar [pk]
+  name varchar [unique, not null, note: "login register"]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table users {
+  id varchar [pk]
+  email varchar [unique, not null]
+  password varchar [not null]
+  nickname varchar
+  slug varchar [unique, not null]
+  profile_photo varchar
+  phones text[]
+  addresses jsonb
+  role_id varchar [ref: > roles.id]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table collections {
+  id varchar [pk]
+  name varchar [not null]
+  slug varchar [unique, not null]
+  image_url varchar
+  number_of_products integer [not null, default: 0]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table products {
+  id varchar [pk]
+  name varchar [not null]
+  slug varchar [unique, not null]
+  description varchar
+  price double [not null]
+  discounted_price double [default: 0]
+  quantity integer [not null, default: 0]
+  weight double [not null, default: 0]
+  sku varchar
+  brand varchar
+  media jsonb
+  variants jsonb
+  additional_info jsonb
+  collection_ids varchar[] [note: "filter katalog"]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table carts {
+  id varchar [pk]
+  user_id varchar [unique, not null, ref: > users.id]
+  line_items jsonb [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table orders {
+  id varchar [pk]
+  order_number varchar [unique, not null]
+  user_id varchar [not null, ref: > users.id]
+  status varchar [not null, default: 'APPROVED']
+  payment_status payment_status [not null, default: 'NOT_PAID']
+  line_items jsonb [not null]
+  subtotal double [not null]
+  shipping_cost double [not null]
+  total double [not null]
+  recipient_name varchar
+  recipient_phone varchar
+  address varchar [not null]
+  layanan_kurir varchar
+  catatan varchar
+  metode_pembayaran varchar
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table payment_evidences {
+  id varchar [pk]
+  order_id varchar [not null, ref: > orders.id]
+  order_number varchar [not null]
+  link_bukti_pembayaran varchar [not null]
+  nama_foto varchar [not null]
+  created_at timestamp [not null]
+}
+
+Table rekening_banks {
+  id varchar [pk]
+  nama_penerima varchar [not null]
+  jenis_bank varchar [not null]
+  nomor_rekening varchar [not null]
+  gambar_bank varchar
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table push_subscriptions {
+  id varchar [pk]
+  user_id varchar [not null]
+  endpoint varchar [not null]
+  p256dh varchar [not null]
+  auth varchar [not null]
+  user_agent varchar
+  created_at timestamp [not null]
+
+  indexes {
+    (user_id, endpoint) [unique]
+  }
+}
+
+Ref: push_subscriptions.user_id > users.id

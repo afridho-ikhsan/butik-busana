@@ -1,0 +1,147 @@
+@startuml skripsi_class_diagram_usecases
+title Class Diagram — Domain terkait use case skripsi\nToserbanet (klien pelanggan)
+
+skinparam classAttributeIconSize 0
+skinparam PackagePadding 10
+skinparam RoundCorner 6
+
+package "Otentikasi — masuk daftar keluar" {
+  class Role {
+    +id : String
+    +name : String
+  }
+
+  class User {
+    +id : String
+    +email : String
+    +password : String
+    +nickname : String
+    +slug : String
+    +profilePhoto : String
+    +phones : String[]
+    +addresses : Json[]
+    +roleId : String
+  }
+
+  User "n" --> "0..1" Role : berperan
+}
+
+package "Lihat katalog — akses daring maupun luring" {
+  class Collection {
+    +id : String
+    +name : String
+    +slug : String
+    +imageUrl : String
+  }
+
+  class Product {
+    +id : String
+    +name : String
+    +slug : String
+    +price : Float
+    +discountedPrice : Float
+    +quantity : Int
+    +weight : Float
+    +media : Json[]
+    +variants : Json[]
+    +collectionIds : String[]
+  }
+
+  Product ..> Collection : penyaringan\nlewat id koleksi
+  note bottom of Product
+    Tampilan luring memakai cadangan
+    Workbox snapshot klien
+  end note
+}
+
+package "Keranjang — tambah hapus barang" {
+  class Cart {
+    +id : String
+    +userId : String
+    +lineItems : Json[]
+  }
+
+  class LineItemKeranjang <<struktur JSON>> {
+    +productId : String
+    +variantId : String
+    +quantity : Int
+    +price : Float
+    +productName : String
+    +image : String
+  }
+
+  Cart *-- "0..*" LineItemKeranjang : lineItems
+
+  note right of Cart
+    Pelanggan tamu tidak punya Cart
+    baris disimpan di localStorage
+  end note
+}
+
+package "Checkout — pesanan pembayaran" {
+  enum PaymentStatus {
+    NOT_PAID
+    PAID
+  }
+
+  class Order {
+    +id : String
+    +orderNumber : String
+    +userId : String
+    +status : String
+    +paymentStatus : PaymentStatus
+    +lineItems : Json[]
+    +subtotal : Float
+    +shippingCost : Float
+    +total : Float
+    +recipientName : String
+    +recipientPhone : String
+    +address : String
+    +layananKurir : String
+    +catatan : String
+    +metodePembayaran : String
+  }
+
+  class PaymentEvidence {
+    +id : String
+    +orderId : String
+    +orderNumber : String
+    +linkBuktiPembayaran : String
+    +namaFoto : String
+  }
+
+  class RekeningBank {
+    +id : String
+    +namaPenerima : String
+    +jenisBank : String
+    +nomorRekening : String
+    +gambarBank : String
+  }
+
+  Order *-- "0..*" PaymentEvidence
+  Order --> PaymentStatus
+  Order ..> RekeningBank : referensi manual\nuntuk transfer
+
+  note bottom of Order
+    Pesanan tamu memakai User sistem
+    guest akun khusus
+  end note
+}
+
+package "Notifikasi push — langganan terima" {
+  class PushSubscription {
+    +id : String
+    +userId : String
+    +endpoint : String
+    +p256dh : String
+    +auth : String
+    +userAgent : String
+  }
+
+  User "1" -- "0..*" PushSubscription
+}
+
+User "1" -- "0..1" Cart
+User "1" -- "0..*" Order
+
+@enduml

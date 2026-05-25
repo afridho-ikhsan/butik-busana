@@ -1,0 +1,40 @@
+@startuml skripsi_sequence_catalog
+title Modul Katalog — Lihat Katalog (daring)
+
+actor Pelanggan
+participant "Klien" as Klien
+participant "Peladen" as Peladen
+participant "Basis data" as DB
+
+Pelanggan -> Klien: buka produk dan filter
+Klien -> Klien: ubah URL tanpa navigasi RSC
+Klien -> Peladen: GET daftar produk
+note right of Peladen: /api/products
+Peladen -> DB: kueri produk terfilter
+DB --> Peladen: hasil
+Peladen --> Klien: JSON
+Klien -> Pelanggan: tampil katalog
+
+newpage
+title Modul Katalog — Luring memakai salinan
+
+actor Pelanggan
+participant "Klien" as Klien
+participant "Service worker" as SW
+participant "Penyimpanan" as Storage
+participant "Peladen" as Peladen
+
+Pelanggan -> Klien: muat ulang tanpa jaringan
+Klien -> SW: fetch daftar
+alt jaringan tersedia
+  SW -> Peladen: permintaan langsung
+  Peladen --> SW: respons
+  SW -> Storage: perbarui salinan
+else hanya salinan
+  SW -> Storage: baca salinan URL
+  Storage --> SW: JSON tersimpan
+end
+SW --> Klien: body respons
+Klien -> Pelanggan: tampilkan produk\nopsi peringatan luring
+
+@enduml

@@ -1,0 +1,152 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     User[]
+}
+
+model User {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  email        String   @unique
+  password     String
+  nickname     String?
+  slug         String   @unique
+  profilePhoto String?
+  phones       String[] @default([])
+  addresses    Json[]   @default([])
+  roleId       String?  @db.ObjectId
+  role         Role?    @relation(fields: [roleId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  carts        Cart[]
+  orders       Order[]
+}
+
+model Collection {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  name             String
+  slug             String   @unique
+  imageUrl         String?
+  numberOfProducts Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Product {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  name            String
+  slug            String   @unique
+  description     String?  @default("")
+  price           Float
+  discountedPrice Float?   @default(0)
+  quantity        Int      @default(0)
+  weight          Float    @default(0)
+  sku             String?
+  brand           String?
+  media           Json[]   @default([])
+  variants        Json[]   @default([])
+  additionalInfo  Json[]   @default([])
+  collectionIds   String[] @default([])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Cart {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @unique @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id])
+  lineItems Json[]   @default([])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Order {
+  id               String            @id @default(auto()) @map("_id") @db.ObjectId
+  orderNumber      String            @unique
+  userId           String            @db.ObjectId
+  user             User              @relation(fields: [userId], references: [id])
+  status           String            @default("APPROVED")
+  paymentStatus    PaymentStatus     @default(NOT_PAID)
+  lineItems        Json[]
+  subtotal         Float
+  shippingCost     Float
+  total            Float
+  recipientName    String?
+  recipientPhone   String?
+  address          String
+  layananKurir     String?
+  catatan          String?
+  metodePembayaran String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  paymentEvidences PaymentEvidence[]
+}
+
+enum PaymentStatus {
+  NOT_PAID
+  PAID
+}
+
+model PaymentEvidence {
+  id                  String   @id @default(auto()) @map("_id") @db.ObjectId
+  orderId             String   @db.ObjectId
+  orderNumber         String
+  linkBuktiPembayaran String
+  namaFoto            String
+  createdAt           DateTime @default(now())
+  order               Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model RekeningBank {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  namaPenerima  String
+  jenisBank     String
+  nomorRekening String
+  gambarBank    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model PushSubscription {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  endpoint  String
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+  @@unique([userId, endpoint])
+}
+
+model SiteConfig {
+  id    String @id @default(auto()) @map("_id") @db.ObjectId
+  key   String @unique
+  value String
+}
+
+model MarqueeItem {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  text      String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SliderSlide {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  imageUrl  String
+  linkUrl   String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

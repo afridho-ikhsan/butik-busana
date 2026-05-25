@@ -1,0 +1,67 @@
+@startuml skripsi_register_sequence
+title Sequence Diagram — Pendaftaran\nPelanggan, halaman daftar
+
+skinparam SequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor Pelanggan as pengguna
+participant "HalamanDaftar" as ui
+participant "LayananAuth\nPOST /api/auth/register" as svc
+participant "RutePendaftaran" as route
+database "BasisData" as db
+
+pengguna -> ui: Mengisi nama email kata sandi\nmenekan Daftar
+activate ui
+
+ui -> svc: Meminta pendaftaran\nmengirim data formulir
+activate svc
+
+svc -> route: Permintaan HTTP POST\nbadan JSON pendaftaran
+activate route
+
+route -> route: Memeriksa format email\npanjang sandi isian wajib
+
+alt Format atau isian tidak memenuhi syarat
+  route --> svc: Respons galat validasi
+  deactivate route
+  svc --> ui: Permintaan ditolak status 400
+  deactivate svc
+  ui -> pengguna: Notifikasi galat pendaftaran
+else Lanjut pemeriksaan keunikan email
+  route -> db: Mencari pengguna\nberdasarkan email
+  activate db
+  db --> route: Rekaman atau kosong
+  deactivate db
+
+  alt Email sudah terdaftar
+    route --> svc: Respons email sudah terdaftar
+    deactivate route
+    svc --> ui: Permintaan ditolak status 400
+    deactivate svc
+    ui -> pengguna: Notifikasi email sudah dipakai
+  else Email belum dipakai
+    route -> db: Mengambil peran pelanggan
+    activate db
+    db --> route: Identifier peran
+    deactivate db
+
+    route -> route: Mengolah kata sandi\nagar aman disimpan
+
+    route -> db: Menyimpan pengguna baru
+    activate db
+    db --> route: Konfirmasi penyimpanan
+    deactivate db
+
+    route --> svc: Respons profil ringkas\nemail nama slug
+    deactivate route
+    svc --> ui: Balasan sukses
+    deactivate svc
+    ui -> pengguna: Notifikasi berhasil daftar\nsilakan masuk
+    ui -> ui: Navigasi ke halaman login
+    ui -> pengguna: Formulir masuk tampil
+  end
+end
+
+deactivate ui
+
+@enduml

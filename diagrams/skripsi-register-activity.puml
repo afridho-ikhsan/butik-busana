@@ -1,0 +1,55 @@
+@startuml skripsi_register_activity
+title Activity Diagram — Registrasi\nPelanggan, halaman daftar
+
+skinparam ActivityFontSize 12
+skinparam TitleFontSize 14
+
+|Pelanggan|
+start
+:Membuka halaman pendaftaran;
+
+|Client|
+:Menampilkan form nama, email, dan password;
+
+while (Pendaftaran belum selesai?) is (ya)
+  |Pelanggan|
+  :Memasukkan nama, email, dan password\nminimal enam karakter untuk password;
+  :Menekan tombol Daftar;
+  |Client|
+  :Mengirim data pendaftaran ke server;
+  |Server|
+  :Memerima data dari pengguna;
+  :Memeriksa kelengkapan dan aturan data\nalamat email sah, password cukup panjang, nama diisi;
+  if (Data tidak memenuhi aturan?) then (ya)
+    :Menolak permintaan dengan pesan kesalahan;
+    |Client|
+    :Menampilkan pesan kesalahan kepada pengguna;
+  else (tidak)
+    :Menyiapkan penanda unik untuk profil di toko;
+    |Database|
+    :Mencari apakah email sudah dipakai akun lain;
+    |Server|
+    if (Email sudah terdaftar?) then (ya)
+      :Menolak pendaftaran dengan pesan\nemail sudah terdaftar;
+      |Client|
+      :Menampilkan pesan kesalahan\nemail sudah terdaftar;
+    else (tidak)
+      |Database|
+      :Memuat aturan peran pelanggan;
+      |Server|
+      :Mengolah kata sandi agar tersimpan secara aman;
+      |Database|
+      :Menyimpan akun pengguna baru beserta profilnya;
+      |Server|
+      :Mengirim jawaban berhasil ke aplikasi;
+      |Client|
+      :Menampilkan notifikasi\npendaftaran berhasil silakan login;
+      :Mengalihkan ke halaman masuk;
+      break
+    endif
+  endif
+endwhile
+
+stop
+
+@enduml

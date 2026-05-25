@@ -1,0 +1,35 @@
+@startuml skripsi_catalog_activity
+title Activity Diagram — Lihat Katalog Produk\nPelanggan, halaman daftar produk
+
+skinparam ActivityFontSize 12
+skinparam TitleFontSize 14
+
+|Pelanggan|
+start
+:Membuka halaman katalog produk;
+
+|Client|
+:Meminta halaman beserta\nparameter filter pada alamat;
+
+|Server|
+:Membaca kategori rentang harga\nurutan tampilan dan kata kunci nama;
+
+|Database|
+:Mengambil produk yang masih tersedia\nsesuai harga dan kategori yang dipilih;
+
+|Server|
+if (Ada kata kunci pencarian nama?) then (ya)
+  :Mempersempit daftar\nagar nama cocok dengan kata kunci;
+endif
+:Menyusun halaman berisi\ndaftar produk dan komponen filter;
+
+|Client|
+:Menampilkan banner katalog\nfilter, dan daftar produk;
+
+note right
+  Setiap pelanggan mengganti filter\nlangkah permintaan hingga\npenyajian daftar dijalankan lagi
+end note
+
+stop
+
+@enduml

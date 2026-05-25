@@ -1,0 +1,42 @@
+@startuml skripsi_remove_cart_activity
+title Activity Diagram — Hapus Produk dari Keranjang\nPelanggan, tampilan keranjang
+
+skinparam ActivityFontSize 12
+skinparam TitleFontSize 14
+skinparam Padding 6
+
+|Pelanggan|
+start
+:Membuka daftar item di keranjang;
+if (Cara menghapus?) then (ikon hapus)
+  :Menekan ikon hapus pada baris produk;
+else (tombol kurangi)
+  :Menekan kurangi kuantitas\nketika jumlah barang tersisa satu;
+endif
+
+|Client|
+if (Pelanggan sudah masuk akun?) then (ya)
+  :Mengirim permintaan hapus baris\nmengacu pada pengenal item;
+  |Server|
+  :Memverifikasi bahwa sesi pengguna aktif;
+  if (Sesi tidak valid?) then (ya)
+    :Menolak permintaan\ndengan pesan perlu masuk akun;
+    |Client|
+    :Menampilkan pesan kesalahan kepada pengguna;
+    stop
+  endif
+  |Database|
+  :Mengambil keranjang milik pengguna;
+  |Server|
+  :Menyaring daftar baris\nmenghapus baris yang dipilih;
+  :Menyimpan keranjang yang diperbarui;
+  |Client|
+  :Menyegarkan tampilan keranjang;
+else (tidak)
+  :Menghapus baris dari keranjang tamu\npada penyimpanan peramban;
+  :Menyegarkan tampilan keranjang;
+endif
+
+stop
+
+@enduml

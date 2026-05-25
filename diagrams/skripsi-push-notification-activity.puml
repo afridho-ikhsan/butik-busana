@@ -1,0 +1,76 @@
+@startuml skripsi_push_receive_activity
+title Activity Diagram — Terima Notifikasi Push\nPelanggan, layanan PWA
+
+skinparam ActivityFontSize 12
+skinparam TitleFontSize 14
+skinparam Padding 8
+
+|Pelanggan|
+start
+:Memilih mengaktifkan notifikasi\ndi bilah navigasi;
+
+|Client|
+if (Sudah masuk akun?) then (tidak)
+  stop
+else (ya)
+endif
+
+if (Izin notifikasi peramban diberikan?) then (tidak)
+  :Tidak melanjutkan langganan push;
+  stop
+else (ya)
+endif
+
+:Mendaftarkan pekerja latar push\npada peramban bila perlu;
+:Membuat atau memakai langganan push\nmengirim data ke aplikasi;
+
+|Server|
+:Memverifikasi identitas pengguna;
+if (Permintaan langganan valid?) then (tidak)
+  :Mengembalikan jawaban ditolak;
+  |Client|
+  :Menampilkan kegagalan penyimpanan langganan;
+  stop
+else (ya)
+endif
+
+|Database|
+:Mencatat atau memperbarui\ntitik akhir dan kunci langganan;
+
+|Server|
+:Mengembalikan jawaban berhasil;
+|Client|
+:Menandai pelanggan telah berlangganan;
+note right
+  Tahap berikutnya ketika
+  aplikasi mengirim push
+end note
+
+|Server|
+:Menjalankan aksi yang memicu notifikasi\nmisal persetujuan pesanan atau pengingat;
+
+|Database|
+:Mengambil langganan push\nuntuk pengguna yang dituju;
+
+|Server|
+:Mengirim muatan notifikasi\nke infrastruktur push peramban;
+
+|Layanan Push|
+:Meneruskan pesan ke perangkat;
+
+|Service Worker|
+:Menerima peristiwa push di latar;
+:Menampilkan notifikasi sistem\nmenggunakan judul dan isi pesan;
+
+|Pelanggan|
+:Melihat notifikasi di perangkat;
+
+if (Pelanggan mengetuk notifikasi?) then (ya)
+  |Service Worker|
+  :Membuka atau memfokuskan jendela aplikasi\nmenuju alamat yang disematkan;
+else (tidak)
+endif
+
+stop
+
+@enduml

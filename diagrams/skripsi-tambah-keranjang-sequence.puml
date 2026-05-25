@@ -1,0 +1,81 @@
+@startuml skripsi_tambah_keranjang_sequence
+title Sequence Diagram — Tambah Produk ke Keranjang\nPelanggan, halaman detail produk
+
+skinparam SequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor Pelanggan as pengguna
+participant "KomponenTambahProduk" as addUi
+participant "LayananApiKeranjang\naxios POST /api/cart" as cartApi
+participant "RuteApiKeranjang" as route
+participant "BasisData" as db
+participant "ModulKeranjangTamu\nlocalStorage" as guest
+
+pengguna -> addUi: Menetapkan kuantitas\nmenekan Tambahkan ke keranjang
+activate addUi
+
+addUi -> addUi: Menyusun payload\nproduk varian kuantitas tautan halaman
+
+alt Pengguna sedang masuk akun
+  addUi -> cartApi: Menambah baris melalui POST
+  activate cartApi
+
+  cartApi -> route: Permintaan dengan kuki sesi\nisi JSON produk
+  activate route
+
+  route -> route: Memeriksa sesi pengguna aktif
+
+  alt Sesi tidak sah atau kosong
+    route --> cartApi: Respons perlu login
+    deactivate route
+    cartApi --> addUi: Permintaan ditolak
+    deactivate cartApi
+    addUi -> pengguna: Pesan galat dari server
+  else Sesi sah
+    route -> db: Membaca keranjang milik pengguna
+    activate db
+    db --> route: Daftar baris tersimpan
+    deactivate db
+
+    route -> route: Mencocokkan produk dan varian\nmenjumlahkan kuantitas baris lama\natau menambah baris baru
+
+    route -> db: Menyimpan keranjang terbaru
+    activate db
+    db --> route: Tersimpan
+    deactivate db
+
+    route --> cartApi: Balasan keranjang dan subtotal
+    deactivate route
+    cartApi --> addUi: Data untuk penyegaran cache
+    deactivate cartApi
+
+    addUi -> addUi: Menyegarkan daftar keranjang\nmemuat ikon penghitung
+
+    addUi -> pengguna: Notifikasi produk masuk keranjang
+  end
+
+else Pengguna tamu tidak bersesi
+  addUi -> guest: Meminta penyisipan baris\ndan penyimpanan di perangkat
+  activate guest
+
+  guest -> guest: Memuat snapshot keranjang tamu\nmencocokkan produk dan varian
+
+  alt Baris sama produk dan varian
+    guest -> guest: Menambah kuantitas\npada entri yang ada
+  else Baris baru
+    guest -> guest: Menambah entri dengan penanda baru
+  end
+
+  guest -> guest: Menulis JSON ke localStorage\nmemancarkan peristiwa pembaruan
+
+  guest --> addUi: Keranjang tamu terkini
+  deactivate guest
+
+  addUi -> addUi: Memperbarui state komponen
+
+  addUi -> pengguna: Notifikasi produk masuk keranjang
+end
+
+deactivate addUi
+
+@enduml

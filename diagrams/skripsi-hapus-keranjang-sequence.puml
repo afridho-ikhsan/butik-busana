@@ -1,0 +1,75 @@
+@startuml skripsi_hapus_keranjang_sequence
+title Sequence Diagram — Hapus Produk dari Keranjang\nPelanggan, tampilan keranjang
+
+skinparam SequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor Pelanggan as pengguna
+participant "BarisItemKeranjang" as rowUi
+participant "LayananApiKeranjang\naxios DELETE /api/cart" as cartApi
+participant "RuteApiKeranjang" as route
+participant "BasisData" as db
+participant "ModulKeranjangTamu\nlocalStorage" as guest
+
+pengguna -> rowUi: Menekan hapus pada baris\natau mengecilkan kuantitas\nhingga satu lalu kurangi lagi
+activate rowUi
+
+rowUi -> rowUi: Mengambil pengenal baris\n_id pada entri keranjang
+
+alt Pengguna sedang masuk akun
+  rowUi -> cartApi: Meminta hapus baris\npada parameter itemId
+  activate cartApi
+
+  cartApi -> route: DELETE dengan kuki sesi\nquery itemId
+  activate route
+
+  route -> route: Memeriksa sesi pengguna aktif
+
+  alt Sesi tidak sah atau kosong
+    route --> cartApi: Respons perlu login
+    deactivate route
+    cartApi --> rowUi: Permintaan ditolak
+    deactivate cartApi
+    rowUi -> pengguna: Pesan galat dari server
+  else Sesi sah
+    route -> db: Membaca keranjang milik pengguna
+    activate db
+    db --> route: Daftar baris
+    deactivate db
+
+    route -> route: Menyaring baris\nyang pengenalnya sama dengan itemId
+
+    route -> db: Menyimpan keranjang tanpa baris itu
+    activate db
+    db --> route: Tersimpan
+    deactivate db
+
+    route --> cartApi: Keranjang terbaru dan subtotal
+    deactivate route
+    cartApi --> rowUi: Data untuk penyegaran cache
+    deactivate cartApi
+
+    rowUi -> rowUi: Menyegarkan daftar keranjang
+
+    rowUi -> pengguna: Daftar keranjang diperbarui
+  end
+
+else Pengguna tamu tidak bersesi
+  rowUi -> guest: Meminta hapus baris\ndan penyimpanan di perangkat
+  activate guest
+
+  guest -> guest: Memuat snapshot keranjang tamu\nmenyaring baris yang _id cocok
+
+  guest -> guest: Menulis JSON ke localStorage\nmemancarkan peristiwa pembaruan
+
+  guest --> rowUi: Keranjang tamu tanpa baris itu
+  deactivate guest
+
+  rowUi -> rowUi: Memperbarui state komponen
+
+  rowUi -> pengguna: Daftar keranjang diperbarui
+end
+
+deactivate rowUi
+
+@enduml

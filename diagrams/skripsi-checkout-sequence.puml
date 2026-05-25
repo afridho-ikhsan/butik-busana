@@ -1,0 +1,118 @@
+@startuml skripsi_checkout_sequence
+title Sequence Diagram — Proses Checkout\nBagian pertama — dari keranjang hingga pesanan tercatat
+
+skinparam SequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor Pelanggan as pengguna
+participant "ModalCheckoutKeranjang" as modal
+participant "RutePesananTamu\nPOST /api/orders/guest" as guestRoute
+participant "AksiServerBuatPesanan\ncreateOrder" as createOrder
+participant "BasisData" as db
+
+pengguna -> modal: Membuka checkout\nmeninjau item langkah satu
+modal -> pengguna: Menampilkan daftar belanja
+
+pengguna -> modal: Melanjutkan\nke data pemesanan
+modal -> pengguna: Formulir penerima wilayah kurir\nongkir catatan
+
+pengguna -> modal: Mengisi data\nmenekan lanjut pembayaran\nlalu mengonfirmasi
+
+modal -> modal: Memvalidasi field wajib\nformat telepon alamat kurir
+
+alt Formulir tidak lolos
+  modal -> pengguna: Pesan kesalahan pada bidang
+else Formulir lolos
+  alt Pengguna tamu
+    modal -> guestRoute: Mengirim JSON baris ringkas\ndan data pengiriman
+    activate guestRoute
+
+    guestRoute -> guestRoute: Memastikan akun tamu sistem\ntetap tersedia
+
+    guestRoute -> db: Mencatat pesanan baru\nuntuk pengguna tamu
+    activate db
+    db --> guestRoute: Identitas pesanan
+    deactivate db
+
+    alt Data tidak lengkap atau gagal server
+      guestRoute --> modal: Respons galat
+      deactivate guestRoute
+      modal -> pengguna: Notifikasi gagal membuat pesanan
+    else Pesan tamu berhasil
+      guestRoute --> modal: Identitas pesanan untuk halaman publik
+      deactivate guestRoute
+
+      modal -> modal: Mengosongkan keranjang tamu\nmenutup modal
+
+      modal -> pengguna: Mengalihkan ke halaman ringkasan\npesanan tamu
+    end
+
+  else Pengguna masuk akun
+    modal -> createOrder: Meminta pencatatan pesanan\ndengan baris lengkap sesi
+    activate createOrder
+
+    createOrder -> createOrder: Memeriksa sesi aktif
+
+    alt Sesi tidak ada
+      createOrder --> modal: Galat perlu masuk
+      deactivate createOrder
+      modal -> pengguna: Notifikasi gagal sesi
+    else Sesi ada
+      createOrder -> db: Mencatat pesanan pengguna\nsubtotal ongkir status belum dibayar
+      activate db
+      db --> createOrder: Identitas dan nomor pesanan
+      deactivate db
+
+      createOrder --> modal: Ringkasan pesanan tersimpan
+      deactivate createOrder
+
+      modal -> pengguna: Menampilkan langkah opsi pembayaran\ndi dalam modal
+    end
+  end
+end
+
+newpage
+title Sequence Diagram — Proses Checkout\nBagian kedua — pembayaran pelanggan login
+
+actor Pelanggan as pengguna2
+participant "HalamanOpsiPembayaran\ndalam modal" as payUi
+participant "AksiTokenizer\norderTokenizer" as tokenizer
+participant "MitraPembayaranSnap\nMidtrans" as midtrans
+participant "SkripSnapPeramban" as snapJs
+
+pengguna2 -> payUi: Membaca rekening transfer\nmengunggah bukti jika manual\natau memilih bayar Snap
+
+alt Pilihan bayar Snap Midtrans
+  payUi -> tokenizer: Meminta token transaksi\nmengacu pesanan yang sudah ada
+  activate tokenizer
+
+  tokenizer -> tokenizer: Menyusun rincian barang\nongkir pembeli dan metadata
+
+  tokenizer -> midtrans: Meminta token Snap
+  activate midtrans
+  midtrans --> tokenizer: Token pembayaran
+  deactivate midtrans
+
+  tokenizer --> payUi: Menyerahkan token ke klien
+  deactivate tokenizer
+
+  payUi -> snapJs: Membuka alur pembayaran\nSnap dengan token
+  activate snapJs
+
+  pengguna2 -> snapJs: Menyelesaikan VA QRIS atau dompet
+
+  alt Pembayaran sukses pada Snap
+    snapJs --> payUi: Callback sukses
+    payUi -> pengguna2: Mengalihkan ke halaman daftar transaksi
+  else Pending galat atau tutup
+    snapJs --> payUi: Callback non sukses
+    payUi -> pengguna2: Notifikasi status pembayaran
+  end
+
+  deactivate snapJs
+
+else Pembayaran transfer manual
+  payUi -> pengguna2: Menunjukkan tujuan transfer\nmenerima unggah bukti
+end
+
+@enduml

@@ -1,0 +1,37 @@
+@startuml skripsi_logout_sequence
+title Sequence Diagram — Logout\nPelanggan, komponen logout-button
+
+skinparam SequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor Pelanggan as pengguna
+participant "AntarmukaLogout" as ui
+participant "SesiNextAuth\n(signOut)" as auth
+participant "EndpointOtentikasi" as api
+
+pengguna -> ui: Menekan tombol Logout
+activate ui
+
+ui -> pengguna: Menampilkan dialog konfirmasi
+
+alt Batal atau tutup dialog
+  pengguna -> ui: Memilih tidak jadi logout
+  ui -> pengguna: Menutup dialog\ntanpa mengubah sesi
+else Konfirmasi keluar
+  pengguna -> ui: Memilih yakin logout
+  ui -> auth: logout() memanggil signOut
+  activate auth
+  auth -> api: Mengirim permintaan penutupan sesi
+  activate api
+  api -> api: Mengakhiri sesi\nmenghapus jejak kuki sesi
+  api --> auth: Jawaban penutupan selesai
+  deactivate api
+  auth --> ui: signOut selesai
+  deactivate auth
+  ui -> ui: Memuat ulang ke halaman beranda
+  ui -> pengguna: Peramban menampilkan beranda
+end
+
+deactivate ui
+
+@enduml

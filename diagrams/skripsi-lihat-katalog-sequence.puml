@@ -1,0 +1,66 @@
+@startuml skripsi_lihat_katalog_sequence
+title Sequence Diagram — Lihat Katalog Produk\nPelanggan, halaman daftar produk
+
+skinparam SequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor Pelanggan as pengguna
+participant "KerangkaHalamanProduk\nNext.js server" as shell
+participant "KomponenKatalogKlien" as catalog
+participant "RuteApiProduk" as api
+database "BasisData" as db
+participant "PenyimpananLokal\nperamban" as storage
+
+pengguna -> shell: Membuka halaman daftar produk
+activate shell
+shell -> pengguna: Menyampaikan kerangka filter\nbanner dan area katalog
+shell -> catalog: Meneruskan parameter pencarian\nawal dari URL
+deactivate shell
+activate catalog
+
+catalog -> catalog: Menyelaraskan parameter dari alamat\natau dari filter dan pencarian
+catalog -> catalog: Membentuk permintaan GET\n/api/products terfilter
+
+note over catalog, storage
+Service worker dapat mengembalikan salinan\nGET /api/products saat jaringan tidak stabil
+end note
+
+catalog -> api: Meminta daftar produk
+activate api
+
+api -> db: Mengambil produk aktif\nsesuai harga koleksi urutan
+activate db
+
+opt Penyaringan menurut slug koleksi
+  api -> db: Mencari koleksi\nlalu menyaring produk
+end
+
+db --> api: Daftar rekaman produk
+deactivate db
+
+api -> api: Penyesuaian nama cari\nbeberapa kata jika ada
+
+api --> catalog: Badan JSON daftar produk
+deactivate api
+
+alt Respons valid dan berisi produk
+  catalog -> storage: Menyimpan salinan untuk URL permintaan\nini pada perangkat
+  catalog -> pengguna: Menampilkan kartu produk\ndan tautan detail
+else Respons valid namun daftar kosong
+  catalog -> storage: Menyimpan salinan kosong\nuntuk URL ini
+  catalog -> pengguna: Menampilkan area tanpa item
+else Respons gagal atau tidak dipakai
+  catalog -> storage: Membaca salinan tersimpan\nuntuk URL ini
+  activate storage
+  storage --> catalog: Snapshot atau tidak ada
+  deactivate storage
+  alt Snapshot berisi produk
+    catalog -> pengguna: Menampilkan daftar dari salinan lokal
+  else Tidak ada snapshot memadai
+    catalog -> pengguna: Pesan butuh sambungan\nuntuk mengunduh katalog
+  end
+end
+
+deactivate catalog
+
+@enduml

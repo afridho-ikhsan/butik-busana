@@ -1,0 +1,39 @@
+@startuml skripsi_offline_catalog_activity
+title Activity Diagram — Akses Katalog Dalam Mode Luring\nPelanggan, halaman daftar produk dan service worker
+
+skinparam ActivityFontSize 12
+skinparam TitleFontSize 14
+skinparam Padding 6
+
+|Pelanggan|
+start
+:Membuka atau memuat ulang\nhalaman katalog produk;
+
+|Client|
+:Meminta tampilan dan\npermintaan data katalog;
+
+|Service Worker|
+:Memeriksa permintaan\nmencari sumber data;
+
+if (Peramban tersambung internet?) then (ya)
+  |Server|
+  :Memproses permintaan\nmemuat daftar produk\nsesuai filter dari basis data;
+  |Service Worker|
+  :Menyimpan salinan respons\nuntuk pemakaian luring;
+  |Client|
+  :Menampilkan katalog terbaru\ntanpa pemberitahuan luring;
+else (tidak)
+  |Service Worker|
+  if (Salinan data katalog ada di perangkat?) then (ya)
+    :Mengembalikan salinan\nhasil kunjungan sebelumnya;
+    |Client|
+    :Menampilkan katalog dari cadangan\nbeserta pemberitahuan mode luring;
+  else (tidak)
+    |Client|
+    :Menampilkan keterbatasan\nbelum ada data tersimpan;
+  endif
+endif
+
+stop
+
+@enduml
