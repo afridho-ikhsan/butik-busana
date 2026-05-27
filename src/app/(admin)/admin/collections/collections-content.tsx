@@ -23,6 +23,12 @@ export function CollectionsContent({ collections, total, page, limit, basePath }
       page={page}
       limit={limit}
       basePath={basePath}
+      bulkDelete={{
+        deleteUrl: "/api/admin/collections",
+        title: "Hapus Kategori",
+        message: "Apakah anda yakin ingin menghapus kategori terpilih?",
+        successMessage: "Kategori berhasil dihapus",
+      }}
       searchKey="search"
       sortOptions={[
         { value: "name-asc", label: "Nama A-Z" },

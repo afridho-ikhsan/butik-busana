@@ -27,6 +27,12 @@ export function ProductsContent({ products, total, page, limit, collections, bas
       page={page}
       limit={limit}
       basePath={basePath}
+      bulkDelete={{
+        deleteUrl: "/api/admin/products",
+        title: "Hapus Produk",
+        message: "Apakah anda yakin ingin menghapus produk terpilih?",
+        successMessage: "Produk berhasil dihapus",
+      }}
       searchKey="search"
       filterOptions={[
         {

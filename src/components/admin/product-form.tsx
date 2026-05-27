@@ -36,6 +36,8 @@ export type ProductVariant = {
   discountValue?: number;
 };
 
+const NEW_COLLECTION_PREFIX = "__new__:";
+
 const schema = z.object({
   name: z.string().min(1),
   slug: z.string().optional(),
@@ -134,6 +136,12 @@ export default function ProductForm({ product, collections }: ProductFormProps) 
   });
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [variantErrors, setVariantErrors] = useState<Record<number, { name?: string; price?: string; quantity?: string; weight?: string }>>({});
+  const [bulkVariantPrice, setBulkVariantPrice] = useState(0);
+  const [bulkVariantQuantity, setBulkVariantQuantity] = useState(0);
+  const [bulkVariantWeight, setBulkVariantWeight] = useState(0);
+  const [bulkVariantDiscountType, setBulkVariantDiscountType] = useState<"percent" | "amount">("amount");
+  const [bulkVariantDiscountValue, setBulkVariantDiscountValue] = useState(0);
+  const [collectionSearchValue, setCollectionSearchValue] = useState("");
   const variantCardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [marketplaceLinks, setMarketplaceLinks] = useState<Record<MarketplaceKey, string>>(() =>
     parseMarketplaceFromAdditionalInfo(product?.additionalInfo as { title?: string; value?: string }[] | undefined)
@@ -199,15 +207,34 @@ export default function ProductForm({ product, collections }: ProductFormProps) 
     return () => clearTimeout(t);
   }, [name, setValue]);
 
-  const clearScrollLock = () => {
-    const clear = () => {
+  const clearCloudinaryWidgetOverlay = () => {
+    const resetDocumentStyles = () => {
       document.body.style.overflow = "";
       document.body.style.position = "";
+      document.body.style.paddingRight = "";
+      document.body.style.top = "";
+      document.body.style.width = "";
       document.documentElement.style.overflow = "";
     };
-    requestAnimationFrame(clear);
-    setTimeout(clear, 100);
-    setTimeout(clear, 300);
+
+    const removeLeftoverElements = () => {
+      document
+        .querySelectorAll("#cloudinary-overlay, .cloudinary-overlay, .cloudinary-thumbnails")
+        .forEach((element) => element.remove());
+    };
+
+    resetDocumentStyles();
+    removeLeftoverElements();
+    requestAnimationFrame(() => {
+      resetDocumentStyles();
+      removeLeftoverElements();
+    });
+    [100, 300, 500].forEach((delay) => {
+      setTimeout(() => {
+        resetDocumentStyles();
+        removeLeftoverElements();
+      }, delay);
+    });
   };
 
   const handleMediaUpload = (result: CloudinaryUploadWidgetResults) => {
@@ -227,7 +254,7 @@ export default function ProductForm({ product, collections }: ProductFormProps) 
         toast.success("File berhasil diunggah");
         return [...prev, { type, url }];
       });
-      clearScrollLock();
+      clearCloudinaryWidgetOverlay();
     }
   };
 
@@ -275,6 +302,32 @@ export default function ProductForm({ product, collections }: ProductFormProps) 
       return next;
     });
   };
+  const applyBulkToAllVariants = () => {
+    setVariants((prev) =>
+      prev.map((v) => ({
+        ...v,
+        price: bulkVariantPrice,
+        quantity: bulkVariantQuantity,
+        weight: bulkVariantWeight,
+        discountType: bulkVariantDiscountType,
+        discountValue: bulkVariantDiscountValue,
+      }))
+    );
+    setVariantErrors((prev) => {
+      const next = { ...prev };
+      Object.keys(next).forEach((key) => {
+        const idx = Number(key);
+        const item = { ...next[idx] };
+        delete item.price;
+        delete item.quantity;
+        delete item.weight;
+        if (Object.keys(item).length === 0) delete next[idx];
+        else next[idx] = item;
+      });
+      return next;
+    });
+    toast.success("Pengaturan diterapkan ke semua variant");
+  };
   const handleVariantImageUpload = (idx: number, result: CloudinaryUploadWidgetResults) => {
     if (typeof result.info !== "object") return;
     const info = result.info as { secure_url?: string; url?: string };
@@ -284,7 +337,7 @@ export default function ProductForm({ product, collections }: ProductFormProps) 
         prev.map((v, i) => (i === idx ? { ...v, imageUrl: url } : v))
       );
       toast.success("Gambar variant berhasil diunggah");
-      clearScrollLock();
+      clearCloudinaryWidgetOverlay();
     }
   };
 
@@ -357,6 +410,24 @@ export default function ProductForm({ product, collections }: ProductFormProps) 
       const additionalInfo = MARKETPLACE_KEYS.filter((k) => (marketplaceLinks[k] || "").trim())
         .map((title) => ({ title, value: (marketplaceLinks[title] || "").trim() }));
 
+      const selectedCollectionValues = data.collectionIds || [];
+      const existingCollectionIds = selectedCollectionValues.filter((id) => !id.startsWith(NEW_COLLECTION_PREFIX));
+      const newCollectionNames = selectedCollectionValues
+        .filter((id) => id.startsWith(NEW_COLLECTION_PREFIX))
+        .map((id) => id.slice(NEW_COLLECTION_PREFIX.length));
+
+      const createdCollectionIds: string[] = [];
+      for (const name of newCollectionNames) {
+        const collectionRes = await fetch("/api/admin/collections", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name }),
+        });
+        if (!collectionRes.ok) throw new Error("Gagal membuat kategori baru");
+        const createdCollection = await collectionRes.json();
+        createdCollectionIds.push(createdCollection.id);
+      }
+
       const payload = {
         name: data.name,
         description: data.description,
@@ -368,7 +439,7 @@ export default function ProductForm({ product, collections }: ProductFormProps) 
         media,
         variants: variantsPayload,
         additionalInfo,
-        collectionIds: data.collectionIds || [],
+        collectionIds: [...existingCollectionIds, ...createdCollectionIds],
       };
 
       const url = product ? `/api/admin/products/${product.id}` : "/api/admin/products";
@@ -471,7 +542,12 @@ export default function ProductForm({ product, collections }: ProductFormProps) 
               <div className="border-2 border-dashed border-slate-200 rounded-lg hover:border-blue-400 transition-colors min-w-0 max-w-full">
                 <CldUploadButton
                   uploadPreset={process.env.NEXT_PUBLIC_UPLOAD_PRESET!}
-                  onSuccess={handleMediaUpload}
+                  onSuccess={(result, { close }) => {
+                    handleMediaUpload(result);
+                    close();
+                    clearCloudinaryWidgetOverlay();
+                  }}
+                  onClose={clearCloudinaryWidgetOverlay}
                   options={{
                     multiple: true,
                     maxFiles: 20,
@@ -528,8 +604,78 @@ export default function ProductForm({ product, collections }: ProductFormProps) 
           </div>
 
           {hasVariants ? (
-            <div className="mb-4">
+            <div className="mb-4 max-h-96 overflow-y-auto border border-slate-400 rounded-xl p-4 scrollbar">
               <label className="block text-sm font-medium mb-2">Daftar Variant *</label>
+              <Card size="small" className="bg-slate-100 mb-3">
+                <Row gutter={[16, 8]} align="bottom">
+                  <Col xs={24} sm={12} md={6}>
+                    <label className="text-xs text-slate-500">Harga semua variant (Rp)</label>
+                    <InputNumber
+                      value={bulkVariantPrice}
+                      onChange={(val) => setBulkVariantPrice(val ?? 0)}
+                      min={0}
+                      className="w-full mt-1"
+                      style={{ width: "100%" }}
+                    />
+                  </Col>
+                  <Col xs={24} sm={12} md={4}>
+                    <label className="text-xs text-slate-500">Stok semua variant</label>
+                    <InputNumber
+                      value={bulkVariantQuantity}
+                      onChange={(val) => setBulkVariantQuantity(val ?? 0)}
+                      min={0}
+                      className="w-full mt-1"
+                      style={{ width: "100%" }}
+                    />
+                  </Col>
+                  <Col xs={24} sm={12} md={4}>
+                    <label className="text-xs text-slate-500">Berat semua variant (kg)</label>
+                    <InputNumber
+                      value={bulkVariantWeight}
+                      onChange={(val) => setBulkVariantWeight(val ?? 0)}
+                      min={0}
+                      step={0.01}
+                      className="w-full mt-1"
+                      style={{ width: "100%" }}
+                    />
+                  </Col>
+                  <Col xs={24} sm={12} md={6}>
+                    <label className="text-xs text-slate-500">Diskon semua variant</label>
+                    <div className="flex gap-0 rounded-lg overflow-hidden border border-[var(--ant-color-primary-border)] mt-1">
+                      <InputNumber
+                        min={0}
+                        max={bulkVariantDiscountType === "percent" ? 100 : undefined}
+                        value={bulkVariantDiscountValue || undefined}
+                        onChange={(val) => setBulkVariantDiscountValue(val ?? 0)}
+                        className="flex-1 border-0 rounded-none"
+                        controls={false}
+                        size="small"
+                      />
+                      <div className="flex border-l border-[var(--ant-color-primary-border)]">
+                        <button
+                          type="button"
+                          onClick={() => setBulkVariantDiscountType("percent")}
+                          className={`px-2 py-1 text-xs font-medium transition-colors ${bulkVariantDiscountType === "percent" ? "bg-[var(--ant-color-primary)] text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
+                        >
+                          %
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBulkVariantDiscountType("amount")}
+                          className={`px-2 py-1 text-xs font-medium transition-colors ${bulkVariantDiscountType === "amount" ? "bg-[var(--ant-color-primary)] text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
+                        >
+                          Rp
+                        </button>
+                      </div>
+                    </div>
+                  </Col>
+                  <Col xs={24} sm={12} md={4}>
+                    <Button type="primary" onClick={applyBulkToAllVariants} className="w-full">
+                      Terapkan ke semua
+                    </Button>
+                  </Col>
+                </Row>
+              </Card>
               <Space direction="vertical" size="middle" className="w-full" style={{ width: "100%" }}>
                 {variants.map((v, idx) => (
                   <div
@@ -690,9 +836,14 @@ export default function ProductForm({ product, collections }: ProductFormProps) 
                           ) : (
                             <CldUploadButton
                               uploadPreset={process.env.NEXT_PUBLIC_UPLOAD_PRESET!}
-                              onSuccess={(r) => handleVariantImageUpload(idx, r)}
+                              onSuccess={(result, { close }) => {
+                                handleVariantImageUpload(idx, result);
+                                close();
+                                clearCloudinaryWidgetOverlay();
+                              }}
+                              onClose={clearCloudinaryWidgetOverlay}
                               options={{ resourceType: "image", cropping: false }}
-                              className="border-2 border-dashed border-slate-200 rounded p-4 text-xs hover:border-blue-400"
+                              className="border-2 border-dashed border-slate-200 rounded p-4 text-xs hover:border-blue-400 cursor-pointer"
                             >
                               Upload gambar
                             </CldUploadButton>
@@ -821,17 +972,84 @@ export default function ProductForm({ product, collections }: ProductFormProps) 
             <Controller
               name="collectionIds"
               control={control}
-              render={({ field }) => (
-                <Select
-                  mode="multiple"
-                  value={field.value}
-                  onChange={field.onChange}
-                  placeholder="Pilih kategori"
-                  className="w-full"
-                  size="large"
-                  options={collections.map((c) => ({ label: c.name, value: c.id }))}
-                />
-              )}
+              render={({ field }) => {
+                const selectedValues = field.value || [];
+                const newCollectionOptions = selectedValues
+                  .filter((value) => value.startsWith(NEW_COLLECTION_PREFIX))
+                  .map((value) => {
+                    const name = value.slice(NEW_COLLECTION_PREFIX.length);
+                    return { label: `${name} (baru)`, value };
+                  });
+                const trimmedSearch = collectionSearchValue.trim();
+                const matchedCollection = collections.find(
+                  (collection) => collection.name.trim().toLowerCase() === trimmedSearch.toLowerCase()
+                );
+                const canAddCollection =
+                  trimmedSearch.length > 0 &&
+                  !matchedCollection &&
+                  !selectedValues.some(
+                    (value) =>
+                      value.startsWith(NEW_COLLECTION_PREFIX) &&
+                      value.slice(NEW_COLLECTION_PREFIX.length).trim().toLowerCase() === trimmedSearch.toLowerCase()
+                  );
+
+                const addCollectionFromSearch = () => {
+                  if (!trimmedSearch) return;
+
+                  if (matchedCollection) {
+                    if (!selectedValues.includes(matchedCollection.id)) {
+                      field.onChange([...selectedValues, matchedCollection.id]);
+                    }
+                    setCollectionSearchValue("");
+                    return;
+                  }
+
+                  if (!canAddCollection) return;
+
+                  const newValue = `${NEW_COLLECTION_PREFIX}${trimmedSearch}`;
+                  field.onChange([...selectedValues, newValue]);
+                  setCollectionSearchValue("");
+                };
+
+                return (
+                  <Select
+                    mode="multiple"
+                    showSearch
+                    value={selectedValues}
+                    onChange={field.onChange}
+                    searchValue={collectionSearchValue}
+                    onSearch={setCollectionSearchValue}
+                    onInputKeyDown={(event) => {
+                      if (event.key !== "Enter" || !trimmedSearch) return;
+                      event.preventDefault();
+                      event.stopPropagation();
+                      addCollectionFromSearch();
+                    }}
+                    filterOption={(input, option) =>
+                      String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                    }
+                    placeholder="Pilih kategori"
+                    className="w-full"
+                    size="large"
+                    options={[
+                      ...collections.map((collection) => ({ label: collection.name, value: collection.id })),
+                      ...newCollectionOptions,
+                    ]}
+                    dropdownRender={(menu) => (
+                      <>
+                        {menu}
+                        {canAddCollection && (
+                          <div className="border-t border-slate-200 p-2">
+                            <Button type="link" block onClick={addCollectionFromSearch}>
+                              Tambah &quot;{trimmedSearch}&quot;
+                            </Button>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  />
+                );
+              }}
             />
           </div>
         </Space>

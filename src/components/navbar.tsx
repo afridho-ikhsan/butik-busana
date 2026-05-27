@@ -28,13 +28,13 @@ function Navbar() {
           className="flex items-center gap-3 uppercase sm:text-xl"
         >
           <Image
-            src="/logo.jpeg"
-            alt="Toserbanet"
+            src="/logo-butik.jpeg"
+            alt="Butik Busana"
             width={36}
             height={36}
             className="rounded-full border-2 border-slate-300"
           />
-          <h1 className="!mb-0">Toserbanet</h1>
+          <h1 className="!mb-0">Butik Busana</h1>
         </Link>
 
         <div className="justify-between gap-3 min-[1240px]:gap-4 xl:gap-5 hidden min-[1240px]:flex">

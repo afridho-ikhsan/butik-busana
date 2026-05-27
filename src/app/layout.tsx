@@ -65,7 +65,7 @@ export default function RootLayout({
           <AdminSidebarProvider>
             <Navbar />
             <div className="relative">{children}</div>
-            <Footer />
+            
           </AdminSidebarProvider>
         </AppProviders>
         <Script

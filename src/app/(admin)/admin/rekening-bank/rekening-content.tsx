@@ -23,6 +23,12 @@ export function RekeningContent({ banks, total, page, limit, basePath }: Rekenin
       page={page}
       limit={limit}
       basePath={basePath}
+      bulkDelete={{
+        deleteUrl: "/api/admin/rekening-bank",
+        title: "Hapus Rekening",
+        message: "Apakah anda yakin ingin menghapus rekening terpilih?",
+        successMessage: "Rekening berhasil dihapus",
+      }}
       searchKey="search"
       actions={(item) => (
         <span className="flex gap-3 items-center">

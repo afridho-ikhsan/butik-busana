@@ -1,7 +1,13 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "react-toastify";
+import { confirmAlert } from "react-confirm-alert";
+import { MdDelete } from "react-icons/md";
+import { DeleteOutlined } from "@ant-design/icons";
 import { Input, Select, Table, Button, Space, Pagination } from "antd";
+import ConfirmationBox from "@/components/confirmation.box";
 
 interface Column<T> {
   key: string;
@@ -22,6 +28,13 @@ interface DataTableProps<T> {
   sortOptions?: { value: string; label: string }[];
   basePath: string;
   onDelete?: (id: string) => void;
+  bulkDelete?: {
+    deleteUrl: string;
+    title: string;
+    message: string;
+    successMessage?: string;
+    errorMessage?: string;
+  };
   idKey?: keyof T;
   actions?: (item: T) => React.ReactNode;
 }
@@ -37,6 +50,7 @@ export function DataTable<T extends Record<string, unknown>>({
   sortOptions,
   basePath,
   onDelete,
+  bulkDelete,
   idKey = "id" as keyof T,
   actions,
 }: DataTableProps<T>) {
@@ -44,6 +58,12 @@ export function DataTable<T extends Record<string, unknown>>({
   const router = useRouter();
   const searchParams = useSearchParams();
   const totalPages = Math.ceil(total / limit);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
+  useEffect(() => {
+    setSelectedRowKeys([]);
+  }, [data, page]);
 
   const updateParams = (updates: Record<string, string | number>) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -57,7 +77,62 @@ export function DataTable<T extends Record<string, unknown>>({
 
   const search = searchParams.get(searchKey) || "";
 
+  const handleBulkDelete = () => {
+    if (!bulkDelete || selectedRowKeys.length === 0) return;
+
+    const selectedIds = selectedRowKeys.map(String);
+
+    confirmAlert({
+      customUI: ({ onClose }: { onClose: () => void }) => (
+        <ConfirmationBox
+          icon={<MdDelete />}
+          judul={bulkDelete.title}
+          pesan={`${bulkDelete.message} (${selectedIds.length} item)`}
+          onClose={onClose}
+          onClickIya={async () => {
+            setIsBulkDeleting(true);
+            try {
+              const results = await Promise.all(
+                selectedIds.map((id) => fetch(`${bulkDelete.deleteUrl}/${id}`, { method: "DELETE" }))
+              );
+              if (results.some((result) => !result.ok)) throw new Error();
+              toast.success(bulkDelete.successMessage || "Berhasil dihapus");
+              setSelectedRowKeys([]);
+              router.refresh();
+            } catch {
+              toast.error(bulkDelete.errorMessage || "Gagal menghapus");
+            } finally {
+              setIsBulkDeleting(false);
+              onClose();
+            }
+          }}
+          labelIya="Ya, Hapus"
+          labelTidak="Batal"
+          yesButtonClassName="bg-red-500 text-white"
+        />
+      ),
+    });
+  };
+
   const tableColumns = [
+    ...(onDelete || actions
+      ? [
+        {
+          title: "Aksi",
+          key: "__actions",
+          render: (_value: unknown, record: T) => (
+            <Space>
+              {actions?.(record)}
+              {onDelete && (
+                <Button type="link" danger onClick={() => onDelete(String(record[idKey]))}>
+                  Hapus
+                </Button>
+              )}
+            </Space>
+          ),
+        },
+      ]
+      : []),
     ...columns.map((col) => ({
       title: col.header,
       dataIndex: col.key,
@@ -67,29 +142,22 @@ export function DataTable<T extends Record<string, unknown>>({
         ? (_value: unknown, record: T) => col.render ? col.render(record) : null
         : undefined,
     })),
-    ...(onDelete || actions
-      ? [
-          {
-            title: "Aksi",
-            key: "__actions",
-            render: (_value: unknown, record: T) => (
-              <Space>
-                {actions?.(record)}
-                {onDelete && (
-                  <Button type="link" danger onClick={() => onDelete(String(record[idKey]))}>
-                    Hapus
-                  </Button>
-                )}
-              </Space>
-            ),
-          },
-        ]
-      : []),
   ];
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-3">
+      <Space wrap className="w-full">
+        {bulkDelete && selectedRowKeys.length > 0 && (
+          <Button
+            type="primary"
+            danger
+            icon={<DeleteOutlined />}
+            loading={isBulkDeleting}
+            onClick={handleBulkDelete}
+          >
+            Hapus Terpilih ({selectedRowKeys.length})
+          </Button>
+        )}
         {searchKey && (
           <Input
             placeholder="Cari..."
@@ -137,11 +205,19 @@ export function DataTable<T extends Record<string, unknown>>({
             ))}
           </Select>
         )}
-      </div>
+      </Space>
 
       <div className="bg-slate-50 rounded-lg border border-slate-200 overflow-x-auto">
         <Table
           rowKey={(record) => String(record[idKey])}
+          rowSelection={
+            bulkDelete
+              ? {
+                  selectedRowKeys,
+                  onChange: (keys) => setSelectedRowKeys(keys),
+                }
+              : undefined
+          }
           columns={tableColumns as any}
           dataSource={data}
           pagination={false}
