@@ -73,7 +73,7 @@ async function SinglePage({
   return (
     <>
       <Head>
-        <title>Toserbanet | {product.name}</title>
+        <title>Butik Busana | {product.name}</title>
         <meta name="description" content={description || "Deskripsi produk tidak tersedia."} />
         <meta property="og:title" content={product.name || ""} />
         <meta property="og:description" content={product.description || "Deskripsi produk tidak tersedia."} />

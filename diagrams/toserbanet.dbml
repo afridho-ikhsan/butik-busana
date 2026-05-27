@@ -1,4 +1,4 @@
-Project toserbanet_usecases {
+Project butik_busana_usecases {
   database_type: "PostgreSQL"
   Note: "Hanya domain terkait use case skripsi. MongoDB (Prisma) disetarakan relasional."
 }

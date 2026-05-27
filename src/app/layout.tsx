@@ -22,10 +22,10 @@ const poppins = Poppins({
 
 export const metadata: Metadata = {
   title: {
-    default: "Toserbanet.com jual aneka jam tangan branded, kacamata import, fashion, obat herbal murah harga terjangkau",
-    template: '%s - Toserbanet - Jual aneka jam tangan branded, kacamata import, fashion, obat herbal murah harga terjangkau'
+    default: "butik-busana.com jual aneka jam tangan branded, kacamata import, fashion, obat herbal murah harga terjangkau",
+    template: '%s - Butik Busana - Jual aneka jam tangan branded, kacamata import, fashion, obat herbal murah harga terjangkau'
   },
-  description: "Toserbanet menawarkan aneka jam tangan import, fashion, hingga kacamata kwalitas terbaik dengan harga terjangkau, segera temukan produk original dan terjamin kualitasnya.",
+  description: "Butik Busana menawarkan aneka jam tangan import, fashion, hingga kacamata kwalitas terbaik dengan harga terjangkau, segera temukan produk original dan terjamin kualitasnya.",
   keywords: "ecommerce, jam tangan, arloji, kacamata, rayban, tag heuer, gucci, fashion, baju, ponsel, butik, celana, elektronik, online shop, belanja online",
   twitter: {
     card: 'summary_large_image'

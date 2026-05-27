@@ -55,7 +55,7 @@ function UserDropdown() {
             </>
           ) : (
             <>
-              <p>{member?.loginEmail || "toserbanet.loading@example.com"}</p>
+              <p>{member?.loginEmail || "butik-busana.loading@example.com"}</p>
               <p>{member?.profile?.nickname || "undefined"}</p>
             </>
           )}

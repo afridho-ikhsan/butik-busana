@@ -6,6 +6,7 @@ import { rupiahFormatter } from "@/utils/number-formatter";
 import { CldUploadButton, CloudinaryUploadWidgetResults } from "next-cloudinary";
 import Image from "next/image";
 import { useMutatePaymentEvidence } from "@/hooks/useMutatePaymentEvidence";
+import { useMidtransInit } from "@/hooks/useMidtransInit";
 import { toast } from "react-toastify";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Skeleton } from "./ui/skeleton";
@@ -31,6 +32,7 @@ function PaymentPage({
   const { isOpen } = useContext(ModalContext);
   const { rekeningBank, getRekeningBankLoading } = useGetRekingBank(isOpen);
   const { member, isLoggedIn } = useCurrentMember();
+  useMidtransInit();
 
   const { data: orderData, isLoading } = useQuery({
     queryKey: [orderId, "currentOrder"],
@@ -129,7 +131,7 @@ function PaymentPage({
           image: item.image || "",
           weight: Number(item.weight) || 0,
           catalogReference: item.catalogReference || {
-            appId: "toserbanet",
+            appId: "butik-busana",
             catalogItemId: "",
             options: {},
           },
@@ -137,15 +139,22 @@ function PaymentPage({
         return sentItem;
       });
 
-      const checkoutData: CheckoutDataType & { orderId: string } = {
+      const checkoutData: CheckoutDataType & {
+        orderId: string;
+        orderNumber: string;
+        grossAmount: number;
+      } = {
         informasiPembeli: {
           memberId: member?._id || "",
           contactId: member?.contactId || "",
+          userSlug: member?.profile?.slug || member?._id || "",
           nama:
+            orderData.recipientName ||
             member?.profile?.nickname ||
             member?.loginEmail ||
             "",
           nomorHp:
+            orderData.recipientPhone ||
             (member?.contact?.phones && member.contact.phones[0]) ||
             "",
           email: member?.loginEmail || "",
@@ -156,9 +165,14 @@ function PaymentPage({
         ongkir: Number(orderData.shippingCost) || 0,
         layananKurir: orderData.layananKurir || "",
         orderId,
+        orderNumber,
+        grossAmount: totalAmount,
       };
 
       await redirectToCheckout(checkoutData, member?.contactId || "", true);
+    },
+    onError: (error) => {
+      toast.error(error.message || "Gagal membuka pembayaran Midtrans");
     },
   });
 

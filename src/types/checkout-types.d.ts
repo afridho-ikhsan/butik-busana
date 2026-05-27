@@ -25,6 +25,7 @@ export interface BuyerInfoType {
   nama: string;
   nomorHp: string;
   email: string;
+  userSlug?: string;
 }
 
 export interface CheckoutDataType {

@@ -37,10 +37,10 @@ function Footer() {
       >
         <div className="flex h-full gap-1 items-center">
           Copyright
-          <FaRegCopyright /> 2025 Toserbanet.com
+          <FaRegCopyright /> 2026 Butik Busana
         </div>
         <div className="flex h-full gap-2 items-center">
-          Made by Toserbanet Team
+          Made by Butik Busana Team
         </div>
       </div>
     </div>

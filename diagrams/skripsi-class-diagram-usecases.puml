@@ -1,5 +1,5 @@
 @startuml skripsi_class_diagram_usecases
-title Class Diagram — Domain terkait use case skripsi\nToserbanet (klien pelanggan)
+title Class Diagram — Domain terkait use case skripsi\Butik Busana (klien pelanggan)
 
 skinparam classAttributeIconSize 0
 skinparam PackagePadding 10

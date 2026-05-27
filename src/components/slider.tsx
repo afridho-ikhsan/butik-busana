@@ -10,10 +10,10 @@ import banner4 from "../../public/banner4.webp";
 import { useWindowDimensions } from "@/hooks/useWindowDimention";
 
 const FALLBACK_SLIDES: { id: string; imageUrl: string; linkUrl: string }[] = [
-  { id: "1", imageUrl: banner1.src, linkUrl: "https://www.toserbanet.com/products/tag-heuer-aquaracer-calibre-7-gmt-way201f-pepsi-mens" },
-  { id: "2", imageUrl: banner2.src, linkUrl: "https://www.toserbanet.com/products/oakley-badman-006020-03-polarized-fire-lenses-outdoor-sports-glasses" },
-  { id: "3", imageUrl: banner3.src, linkUrl: "https://www.toserbanet.com/products/kacamata-original-rayban-caravan-rb3136-gold-frame-black-lens" },
-  { id: "4", imageUrl: banner4.src, linkUrl: "https://www.toserbanet.com/products/kacamata-original-rayban-rb4195-scuderia-ferrari-black-doff" },
+  { id: "1", imageUrl: banner1.src, linkUrl: "https://www.butik-busana.com/products/tag-heuer-aquaracer-calibre-7-gmt-way201f-pepsi-mens" },
+  { id: "2", imageUrl: banner2.src, linkUrl: "https://www.butik-busana.com/products/oakley-badman-006020-03-polarized-fire-lenses-outdoor-sports-glasses" },
+  { id: "3", imageUrl: banner3.src, linkUrl: "https://www.butik-busana.com/products/kacamata-original-rayban-caravan-rb3136-gold-frame-black-lens" },
+  { id: "4", imageUrl: banner4.src, linkUrl: "https://www.butik-busana.com/products/kacamata-original-rayban-rb4195-scuderia-ferrari-black-doff" },
 ];
 
 interface SliderSlide {

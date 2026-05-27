@@ -5,7 +5,7 @@ import ProductList from "@/components/product-list/product-list";
 import ProductListSkeletons from "@/components/product-list/product-list-skeletons";
 import { buildProductsCatalogApiUrl } from "@/lib/build-products-catalog-api-url";
 
-const CATALOG_SNAPSHOT_STORAGE_PREFIX = "toserbanet-catalog:v1:";
+const CATALOG_SNAPSHOT_STORAGE_PREFIX = "butik-busana-catalog:v1:";
 
 type SearchRecord = Record<string, string | undefined>;
 
@@ -68,13 +68,13 @@ export function   ProductsCatalogClient({
     syncFromLocation();
     window.addEventListener("popstate", syncFromLocation);
     window.addEventListener(
-      "toserbanet-products-search-update",
+      "butik-busana-products-search-update",
       syncFromLocation
     );
     return () => {
       window.removeEventListener("popstate", syncFromLocation);
       window.removeEventListener(
-        "toserbanet-products-search-update",
+        "butik-busana-products-search-update",
         syncFromLocation
       );
     };

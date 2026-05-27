@@ -131,7 +131,7 @@ export default function SliderForm({ slide }: SliderFormProps) {
               render={({ field }) => (
                 <Input
                   {...field}
-                  placeholder="https://www.toserbanet.com/products/..."
+                  placeholder="https://www.butik-busana.com/products/..."
                   size="large"
                 />
               )}

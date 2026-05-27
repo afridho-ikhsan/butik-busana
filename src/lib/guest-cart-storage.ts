@@ -1,4 +1,4 @@
-const GUEST_CART_KEY = "toserbanet_guest_cart";
+const GUEST_CART_KEY = "butik_busana_guest_cart";
 
 export interface GuestCartLineItem {
   _id: string;

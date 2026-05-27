@@ -4,7 +4,7 @@ const sw = self as unknown as ServiceWorkerGlobalScope;
 
 sw.addEventListener("push", (event: PushEvent) => {
   const data = event.data ? event.data.json() : {};
-  const title = data.title || "Toserbanet";
+  const title = data.title || "Butik Busana";
   const options: NotificationOptions = {
     body: data.body || "",
     icon: data.icon || "/icon-192.png",

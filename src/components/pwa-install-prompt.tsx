@@ -59,7 +59,7 @@ export default function PwaInstallPrompt() {
           <Download className="w-5 h-5 text-blue-600" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-medium text-slate-800 text-sm">Pasang Toserbanet</p>
+          <p className="font-medium text-slate-800 text-sm">Pasang Butik Busana</p>
           <p className="text-xs text-slate-500">Akses lebih cepat dari layar utama</p>
         </div>
         <div className="flex gap-2 shrink-0">

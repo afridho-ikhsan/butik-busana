@@ -26,13 +26,13 @@ function CategorySheet() {
     }
     window.addEventListener("popstate", syncCategoryFromLocation);
     window.addEventListener(
-      "toserbanet-products-search-update",
+      "butik-busana-products-search-update",
       syncCategoryFromLocation
     );
     return () => {
       window.removeEventListener("popstate", syncCategoryFromLocation);
       window.removeEventListener(
-        "toserbanet-products-search-update",
+        "butik-busana-products-search-update",
         syncCategoryFromLocation
       );
     };
@@ -74,7 +74,7 @@ function CategorySheet() {
                         `/products?cat=${encodeURIComponent(slugPart)}`
                       );
                       window.dispatchEvent(
-                        new Event("toserbanet-products-search-update")
+                        new Event("butik-busana-products-search-update")
                       );
                       closeSheet();
                     }}

@@ -47,7 +47,7 @@ export function useGuestCart() {
         image: (data.product?.media?.[0] as { url?: string })?.url ?? "",
         physicalProperties: { weight: data.product?.weight ?? 0 },
         catalogReference: {
-          appId: "toserbanet",
+          appId: "butik-busana",
           catalogItemId: data.productId,
           options: { variantId: data.variantId, variantName: data.variantName },
         },

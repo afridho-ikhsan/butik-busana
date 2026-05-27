@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import * as bcrypt from "bcryptjs";
 
-const GUEST_EMAIL = "guest@toserbanet.system";
-const GUEST_SLUG = "guest-toserbanet";
+const GUEST_EMAIL = "guest@butik-busana.system";
+const GUEST_SLUG = "guest-butik-busana";
 
 export async function getOrCreateGuestUser() {
   const hashedPassword = await bcrypt.hash(

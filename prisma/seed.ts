@@ -64,13 +64,13 @@ async function main() {
   const hashedPassword = await bcrypt.hash("password123", 10);
 
   const user = await prisma.user.upsert({
-    where: { email: "admin@toserbanet.com" },
+    where: { email: "admin@butik-busana.com" },
     update: {},
     create: {
-      email: "admin@toserbanet.com",
+      email: "admin@butik-busana.com",
       password: hashedPassword,
       nickname: "Admin",
-      slug: "admin-toserbanet",
+      slug: "admin-butik-busana",
       roleId: adminRole.id,
       phones: ["081234567890"],
       addresses: [
@@ -245,13 +245,13 @@ async function main() {
     await prisma.rekeningBank.createMany({
       data: [
         {
-          namaPenerima: "PT TOSERBANET",
+          namaPenerima: "Ahmad Ibnu",
           jenisBank: "BCA",
           nomorRekening: "1234567890",
           gambarBank: "/bca-logo.png",
         },
         {
-          namaPenerima: "PT TOSERBANET",
+          namaPenerima: "Ahmad Ibnu",
           jenisBank: "BRI",
           nomorRekening: "0987654321",
           gambarBank: "/bri-logo.png",
@@ -271,7 +271,7 @@ async function main() {
     await prisma.marqueeItem.createMany({
       data: [
         {
-          text: "Selamat Datang di Toserbanet.com > Pusat Produk Branded Berkwalitas Harga Bersaing",
+          text: "Selamat Datang di Butik Busana > Pusat Produk Branded Berkwalitas Harga Bersaing",
           sortOrder: 0,
         },
         { text: "Gratis Ongkir untuk pembelian di atas Rp 500.000", sortOrder: 1 },
@@ -285,12 +285,12 @@ async function main() {
       data: [
         {
           imageUrl: "/banner1.webp",
-          linkUrl: "https://www.toserbanet.com/products",
+          linkUrl: "https://www.butik-busana.com/products",
           sortOrder: 0,
         },
         {
           imageUrl: "/banner2.webp",
-          linkUrl: "https://www.toserbanet.com/products",
+          linkUrl: "https://www.butik-busana.com/products",
           sortOrder: 1,
         },
       ],

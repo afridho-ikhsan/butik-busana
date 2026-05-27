@@ -1,6 +1,6 @@
 self.addEventListener("push", function (event) {
   var data = event.data ? event.data.json() : {};
-  var title = data.title || "Toserbanet";
+  var title = data.title || "Butik Busana";
   var options = {
     body: data.body || "",
     icon: data.icon || "/icon-192.png",

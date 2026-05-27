@@ -28,7 +28,7 @@ export default function SearchProduct({ className }: { className?: string }) {
           "",
           `/products${queryString ? `?${queryString}` : ""}`
         );
-        window.dispatchEvent(new Event("toserbanet-products-search-update"));
+        window.dispatchEvent(new Event("butik-busana-products-search-update"));
         return;
       }
       router.push(`/products?${nextQuery}`);

@@ -122,37 +122,67 @@ export async function orderTokenizer({
   informasiPembeli: { email, nama, nomorHp, contactId, memberId },
   layananKurir,
   orderId,
-}: CheckoutDataType & { orderId?: string }) {
+  orderNumber,
+  grossAmount,
+}: CheckoutDataType & {
+  orderId?: string;
+  orderNumber?: string;
+  grossAmount?: number;
+}) {
   try {
-    console.log(lineItems, 'lineItems');
+    const shippingCost = Math.round(ongkir);
     const item_details = lineItems.map((item) => ({
-      price: item.price,
-      quantity: item.quantity,
+      price: Math.round(item.price),
+      quantity: Math.max(1, Math.floor(item.quantity)),
       name:
         item.productName.length > 45
           ? `${item.productName.slice(0, 22)}...${item.productName.slice(-22)}`
-          : item.productName,
+          : item.productName || "Produk",
     }));
 
     item_details.push({
-      price: ongkir,
+      price: shippingCost,
       quantity: 1,
       name: "Ongkos Kirim",
     });
 
+    const calculatedGrossAmount = item_details.reduce(
+      (total, item) => total + item.price * item.quantity,
+      0
+    );
+    const gross_amount = grossAmount
+      ? Math.round(grossAmount)
+      : calculatedGrossAmount;
+
+    const midtransOrderId = orderNumber
+      ? `${orderNumber}-${Date.now()}`
+      : randomUUID();
+
     const parameter = {
-      item_details,
+      item_details:
+        grossAmount && Math.abs(calculatedGrossAmount - gross_amount) > 0
+          ? [
+              {
+                price: Math.max(0, gross_amount - shippingCost),
+                quantity: 1,
+                name: orderNumber ? `Pesanan ${orderNumber}` : "Pesanan Butik Busana",
+              },
+              {
+                price: shippingCost,
+                quantity: 1,
+                name: "Ongkos Kirim",
+              },
+            ]
+          : item_details,
       customer_details: {
-        first_name: nama.trim().split(" ")[0],
+        first_name: nama.trim().split(" ")[0] || "Pelanggan",
         last_name: nama.trim().split(" ").slice(1).join(" "),
-        email,
-        phone: nomorHp,
+        email: email.trim() || "customer@butik-busana.local",
+        phone: nomorHp.trim() || "081000000000",
       },
       transaction_details: {
-        order_id: orderId || randomUUID(),
-        gross_amount:
-          lineItems.reduce((acc, item) => acc + item.price * item.quantity, 0) +
-          ongkir,
+        order_id: midtransOrderId,
+        gross_amount,
       },
       metadata: {
         lineItems,

@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
       image: (product?.media?.[0] as { url?: string })?.url || "",
       physicalProperties: { weight: product?.weight || 0 },
       catalogReference: {
-        appId: "toserbanet",
+        appId: "butik-busana",
         catalogItemId: productId,
         options: { productLink, variantId, variantName },
       },

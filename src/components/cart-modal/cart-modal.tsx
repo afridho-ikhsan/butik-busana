@@ -28,12 +28,14 @@ import { confirmAlert } from "react-confirm-alert";
 import ConfirmationBox from "../confirmation.box";
 import { MdOutlineInfo } from "react-icons/md";
 import { useMutation } from "@tanstack/react-query";
+import { useMidtransInit } from "@/hooks/useMidtransInit";
 import PaymentPage from "../payment-page";
 import { Input, Button, Row, Col } from "antd";
 
 function CartModal() {
   const { cart, getCart, counter, isLoading, deleteCart } = useUnifiedCart();
   const { member, isLoggedIn } = useCurrentMember();
+  useMidtransInit();
   const pathname = usePathname();
   const router = useRouter();
   const { TextArea } = Input;
@@ -126,6 +128,7 @@ function CartModal() {
             informasiPembeli: {
               memberId: member?._id || "",
               contactId: member?.contactId || "",
+              userSlug: member?.profile?.slug || member?._id || "",
               nama,
               nomorHp,
               email: member?.loginEmail || "",
@@ -160,7 +163,7 @@ function CartModal() {
                 image: item.image || "",
                 weight: item.physicalProperties?.weight || 0,
                 catalogReference: {
-                  appId: item.catalogReference?.appId || "toserbanet",
+                  appId: item.catalogReference?.appId || "butik-busana",
                   catalogItemId: item.catalogReference?.catalogItemId || "",
                   options: {
                     productLink: item.catalogReference?.options?.productLink || null,

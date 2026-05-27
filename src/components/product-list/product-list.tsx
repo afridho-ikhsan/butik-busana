@@ -74,7 +74,7 @@ export default function ProductList({
     const queryString = params.toString();
     if (controlledSearchParamsString !== undefined) {
       window.history.replaceState(null, "", `/products?${queryString}`);
-      window.dispatchEvent(new Event("toserbanet-products-search-update"));
+      window.dispatchEvent(new Event("butik-busana-products-search-update"));
       return;
     }
     router.push(`${pathname}?${queryString}`);
