@@ -1,9 +1,9 @@
 import { PrismaClient } from "@prisma/client";
 import * as bcrypt from "bcryptjs";
-import { orderSeed, productSeed } from "./constants";
+import { orderSeed } from "./constants";
+import { butikBusanaCollections, butikBusanaProductSeed } from "./butik-busana-products";
 
 const prisma = new PrismaClient();
-const WIX_MEDIA_BASE = "https://static.wixstatic.com/media/";
 
 function slugify(raw: string): string {
   return raw
@@ -15,8 +15,31 @@ function slugify(raw: string): string {
     .replace(/\s+/g, "-");
 }
 
-function stripHtml(html: string): string {
-  return html.replace(/<[^>]+>/g, "").trim();
+function getVariantSalePrice(variant: {
+  price: number;
+  discountType?: "percent" | "amount";
+  discountValue?: number;
+}): number {
+  const base = Number(variant.price) || 0;
+  const discountType = variant.discountType ?? "amount";
+  const discountValue = Number(variant.discountValue ?? 0) || 0;
+  if (discountValue <= 0) return base;
+  return discountType === "percent" ? base * (1 - discountValue / 100) : Math.max(0, base - discountValue);
+}
+
+function getProductTotalsFromVariants(
+  variants: NonNullable<(typeof butikBusanaProductSeed)[number]["variants"]>
+) {
+  const prices = variants.map((variant) => Number(variant.price) || 0);
+  const salePrices = variants.map((variant) => getVariantSalePrice(variant));
+  const price = Math.min(...prices);
+  const minSale = Math.min(...salePrices);
+  return {
+    price,
+    discountedPrice: minSale < price ? minSale : price,
+    quantity: variants.reduce((total, variant) => total + Math.max(0, Math.floor(Number(variant.quantity) || 0)), 0),
+    weight: Number(variants[0]?.weight) || 0,
+  };
 }
 
 async function main() {
@@ -65,173 +88,66 @@ async function main() {
     data: { roleId: adminRole.id },
   });
 
-  const allProductsCollection = await prisma.collection.upsert({
-    where: { slug: "all-products" },
-    update: {},
-    create: {
-      name: "Semua Produk",
-      slug: "all-products",
-      imageUrl: "/default-collection.jpg",
-      numberOfProducts: 0,
-    },
-  });
+  const collectionSlugToId: Record<string, string> = {};
 
-  const jamTanganCollection = await prisma.collection.upsert({
-    where: { slug: "jam-tangan" },
-    update: {},
-    create: {
-      name: "Jam Tangan",
-      slug: "jam-tangan",
-      imageUrl: "/jam-tangan.jpg",
-      numberOfProducts: 0,
-    },
-  });
-
-  const kacamataCollection = await prisma.collection.upsert({
-    where: { slug: "kacamata" },
-    update: {},
-    create: {
-      name: "Kacamata",
-      slug: "kacamata",
-      imageUrl: "/kacamata.jpg",
-      numberOfProducts: 0,
-    },
-  });
-
-  const boxJamTanganCollection = await prisma.collection.upsert({
-    where: { slug: "box-jam-tangan" },
-    update: {},
-    create: {
-      name: "Box Jam Tangan",
-      slug: "box-jam-tangan",
-      imageUrl: "/box-jam-tangan.jpg",
-      numberOfProducts: 0,
-    },
-  });
-
-  const fashionCollection = await prisma.collection.upsert({
-    where: { slug: "fashion" },
-    update: {},
-    create: {
-      name: "Fashion",
-      slug: "fashion",
-      imageUrl: "/fashion.jpg",
-      numberOfProducts: 0,
-    },
-  });
-
-  const obatHerbalCollection = await prisma.collection.upsert({
-    where: { slug: "obat-herbal" },
-    update: {},
-    create: {
-      name: "Obat Herbal",
-      slug: "obat-herbal",
-      imageUrl: "/obat-herbal.jpg",
-      numberOfProducts: 0,
-    },
-  });
-
-  const jamDindingCollection = await prisma.collection.upsert({
-    where: { slug: "jam-dinding" },
-    update: {},
-    create: {
-      name: "Jam Dinding",
-      slug: "jam-dinding",
-      imageUrl: "/jam-dinding.jpg",
-      numberOfProducts: 0,
-    },
-  });
-
-  const collectionNameToId: Record<string, string> = {
-    "Jam Tangan": jamTanganCollection.id,
-    Kacamata: kacamataCollection.id,
-    "Box Jam Tangan": boxJamTanganCollection.id,
-    Fashion: fashionCollection.id,
-    "Obat Herbal": obatHerbalCollection.id,
-    "Jam Dinding": jamDindingCollection.id,
-  };
-
-  for (const p of productSeed) {
-    const name = String(p.name || "").trim();
-    if (!name) continue;
-    const slug = slugify(name);
-    if (!slug) continue;
-    const priceNum = typeof p.price === "number" ? p.price : parseFloat(String(p.price || "0")) || 0;
-    const collectionNames = (p.collection || "")
-      .split(";")
-      .map((c) => c.trim())
-      .filter(Boolean);
-
-    const collectionIds = new Set<string>();
-    collectionIds.add(allProductsCollection.id);
-    for (const name of collectionNames) {
-      const id = collectionNameToId[name];
-      if (id) collectionIds.add(id);
-    }
-
-    const discountedPrice =
-      p.discountMode === "PERCENT" && p.discountValue && typeof p.discountValue === "number" && p.discountValue > 0
-        ? priceNum * (1 - p.discountValue / 100)
-        : 0;
-
-    const productImageStr =
-      typeof p.productImageUrl === "string"
-        ? p.productImageUrl
-        : Array.isArray(p.productImageUrl)
-          ? (p.productImageUrl as string[]).join(";")
-          : "";
-    const media =
-      productImageStr
-        .split(";")
-        .map((f) => f.trim())
-        .filter(Boolean)
-        .map((file) => ({
-          type: "image",
-          url: `${WIX_MEDIA_BASE}${file}`,
-        })) || [];
-
-    const additionalInfo: { title: string; value: string }[] = [];
-    for (let i = 1; i <= 6; i++) {
-      const title = (p as Record<string, unknown>)[
-        `additionalInfoTitle${i}`
-      ] as string;
-      const desc = (p as Record<string, unknown>)[
-        `additionalInfoDescription${i}`
-      ] as string;
-      if (title && desc) {
-        const cleanUrl = stripHtml(desc);
-        if (cleanUrl && ["tokopedia", "shopee", "tiktok"].includes(title.toLowerCase())) {
-          additionalInfo.push({ title: title.toLowerCase(), value: cleanUrl });
-        }
-      }
-    }
-
-    const skuRaw = (p as Record<string, unknown>).sku;
-    const sku = typeof skuRaw === "string" && skuRaw.trim() ? skuRaw.trim() : undefined;
-    const brandRaw = (p as Record<string, unknown>).brand;
-    const brand = typeof brandRaw === "string" && brandRaw.trim() ? brandRaw.trim() : undefined;
-
-    await prisma.product.upsert({
-      where: { slug },
+  for (const collection of butikBusanaCollections) {
+    const savedCollection = await prisma.collection.upsert({
+      where: { slug: collection.slug },
       update: {},
       create: {
-        name,
-        slug,
-        description: p.description || "",
-        price: priceNum,
-        discountedPrice,
-        quantity: Math.max(0, Math.floor(p.inventory || 0)),
-        weight:
-          typeof p.weight === "number"
-            ? p.weight
-            : parseFloat(String(p.weight || "0")) || 0,
-        sku,
-        brand,
-        media,
-        collectionIds: Array.from(collectionIds),
-        additionalInfo,
+        name: collection.name,
+        slug: collection.slug,
+        imageUrl: collection.imageUrl,
+        numberOfProducts: 0,
       },
     });
+    collectionSlugToId[collection.slug] = savedCollection.id;
+  }
+
+  let productsCreated = 0;
+  let productsSkipped = 0;
+
+  for (const product of butikBusanaProductSeed) {
+    const name = product.name.trim();
+    const slug = product.slug || slugify(name);
+    if (!name || !slug) continue;
+
+    const existingProduct = await prisma.product.findUnique({ where: { slug } });
+    if (existingProduct) {
+      productsSkipped++;
+      continue;
+    }
+
+    const collectionIds = new Set<string>();
+    const allProductsCollectionId = collectionSlugToId["all-products"];
+    if (allProductsCollectionId) collectionIds.add(allProductsCollectionId);
+
+    for (const collectionSlug of product.collections) {
+      const collectionId = collectionSlugToId[collectionSlug];
+      if (collectionId) collectionIds.add(collectionId);
+    }
+
+    const variants = product.variants ?? [];
+    const totalsFromVariants =
+      variants.length > 0 ? getProductTotalsFromVariants(variants) : null;
+
+    await prisma.product.create({
+      data: {
+        name,
+        slug,
+        description: product.description,
+        price: totalsFromVariants?.price ?? product.price,
+        discountedPrice: totalsFromVariants?.discountedPrice ?? product.discountedPrice ?? 0,
+        quantity: totalsFromVariants?.quantity ?? product.quantity,
+        weight: totalsFromVariants?.weight ?? product.weight,
+        brand: product.brand,
+        media: product.imageUrls.map((url) => ({ type: "image", url })),
+        variants,
+        collectionIds: Array.from(collectionIds),
+        additionalInfo: [],
+      },
+    });
+    productsCreated++;
   }
 
   const allCollections = await prisma.collection.findMany();
@@ -387,7 +303,9 @@ async function main() {
     roles: ["admin", "owner", "customer"],
     user: user.email,
     collections: allCollections.length,
-    products: productCount,
+    productsCreated,
+    productsSkipped,
+    productsTotal: productCount,
     orders: orderCount,
   });
 }

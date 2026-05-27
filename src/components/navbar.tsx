@@ -28,7 +28,7 @@ function Navbar() {
           className="flex items-center gap-3 uppercase sm:text-xl"
         >
           <Image
-            src="/logo-butik.jpeg"
+            src="/logo-butik.png"
             alt="Butik Busana"
             width={36}
             height={36}
