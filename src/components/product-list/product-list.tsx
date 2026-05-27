@@ -16,7 +16,7 @@ interface ProductRecord {
   discountedPrice?: number | null;
   quantity: number;
   media: unknown;
-  updatedAt: string | Date;
+  updatedAt: string | Date | null;
 }
 
 interface PropsType {
