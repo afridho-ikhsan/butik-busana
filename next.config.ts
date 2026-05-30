@@ -8,10 +8,12 @@ const withPWA = withPWAInit({
   reloadOnOnline: true,
   extendDefaultRuntimeCaching: true,
   workboxOptions: {
+    navigateFallback: "/offline",
+    navigateFallbackDenylist: [/^\/api\//, /^\/admin/, /^\/order\//],
     runtimeCaching: [
       {
         urlPattern: ({ request, url }) =>
-          request.mode === "navigate" && url.pathname === "/products",
+          request.mode === "navigate" && url.pathname.startsWith("/products"),
         handler: "NetworkFirst",
         options: {
           cacheName: "catalog-page-document",
