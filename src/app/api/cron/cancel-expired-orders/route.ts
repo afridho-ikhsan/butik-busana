@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { PAYMENT_DEADLINE_MS } from "@/lib/payment-deadline";
+import { sendPushToUser } from "@/lib/push";
 
 const CRON_SECRET = process.env.CRON_SECRET;
 
@@ -12,16 +13,55 @@ export async function GET(req: NextRequest) {
   try {
     const deadline = new Date(Date.now() - PAYMENT_DEADLINE_MS);
 
-    const result = await prisma.order.updateMany({
+    const orders = await prisma.order.findMany({
       where: {
         paymentStatus: "NOT_PAID",
         status: { not: "CANCELED" },
         createdAt: { lt: deadline },
       },
-      data: { status: "CANCELED" },
+      select: {
+        id: true,
+        orderNumber: true,
+        userId: true,
+        user: { select: { slug: true } },
+      },
     });
 
-    return NextResponse.json({ canceled: result.count });
+    let pushSent = 0;
+
+    for (const order of orders) {
+      await prisma.order.update({
+        where: { id: order.id },
+        data: { status: "CANCELED" },
+      });
+
+      const userSlug = order.user?.slug;
+      const orderUrl = userSlug
+        ? `/user/${userSlug}/transactions/${order.id}`
+        : "/";
+
+      const subscriptionCount = await prisma.pushSubscription.count({
+        where: { userId: order.userId },
+      });
+
+      if (subscriptionCount === 0) continue;
+
+      try {
+        await sendPushToUser(order.userId, {
+          title: "Pesanan Dibatalkan",
+          body: `Pesanan #${order.orderNumber} dibatalkan karena batas waktu pembayaran habis.`,
+          url: orderUrl,
+          tag: `order-expired-${order.id}`,
+          requireInteraction: true,
+        });
+        pushSent += 1;
+      } catch (_e) {}
+    }
+
+    return NextResponse.json({
+      canceled: orders.length,
+      pushSent,
+    });
   } catch (error) {
     console.error("Cancel expired orders cron error:", error);
     return NextResponse.json({ error: "Terjadi kesalahan" }, { status: 500 });

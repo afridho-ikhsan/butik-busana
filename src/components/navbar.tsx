@@ -40,30 +40,30 @@ function Navbar() {
         <div className="justify-between gap-3 min-[1240px]:gap-4 xl:gap-5 hidden min-[1240px]:flex">
           <Link
             href={"/"}
-            className="flex items-center gap-1 xl:gap-3 w-max text-base xl:text-lg"
+            className="flex items-center gap-1 xl:gap-3 w-max text-base xl:text-base"
           >
-            <RiHome6Line className="text-2xl" />
+            <RiHome6Line className="text-lg" />
             <span>Home</span>
           </Link>
           <Link
             href={"/products"}
-            className="flex items-center gap-1 xl:gap-3 w-max text-base xl:text-lg"
+            className="flex items-center gap-1 xl:gap-3 w-max text-base xl:text-base"
           >
-            <LuGlasses className="text-2xl" />
+            <LuGlasses className="text-lg" />
             <span>Produk</span>
           </Link>
           <Link
             href={"/cari-pesanan"}
-            className="flex items-center gap-1 xl:gap-3 w-max text-base xl:text-lg"
+            className="flex items-center gap-1 xl:gap-3 w-max text-base xl:text-base"
           >
-            <LuSearch className="text-2xl" />
+            <LuSearch className="text-lg" />
             <span>Cari Pesanan</span>
           </Link>
           <Link
             href={"/kontak"}
-            className="flex items-center gap-1 xl:gap-3 w-max text-base xl:text-lg"
+            className="flex items-center gap-1 xl:gap-3 w-max text-base xl:text-base"
           >
-            <BiPhoneCall className="text-2xl" />
+            <BiPhoneCall className="text-lg" />
             <span>Kontak Kami</span>
           </Link>
         </div>

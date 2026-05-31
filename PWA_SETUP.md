@@ -9,6 +9,7 @@
 | Admin approve pembayaran (manual) | Pembayaran Disetujui | Customer |
 | Cron payment reminder (order NOT_PAID > 24 jam) | Reminder: Belum Bayar | Customer |
 | Cron payment deadline (sisa 30 / 15 / 5 menit) | Pembayaran X menit lagi habis | Customer |
+| Cron cancel expired orders | Pesanan Dibatalkan | Customer |
 
 Customer harus login, klik "Aktifkan notifikasi" di navbar, dan mengizinkan permission browser.
 
