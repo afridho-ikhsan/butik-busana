@@ -44,8 +44,8 @@ export async function GET(req: NextRequest) {
         where: {
           paymentStatus: "NOT_PAID",
           status: { not: "CANCELED" },
-          [sentField]: null,
           createdAt: { gt: createdAtMin, lte: createdAtMax },
+          OR: [{ [sentField]: null }, { [sentField]: { isSet: false } }],
         },
         select: {
           id: true,
@@ -54,6 +54,8 @@ export async function GET(req: NextRequest) {
           user: { select: { slug: true } },
         },
       });
+
+      console.log(orders)
 
       matchedCounts[String(minutes)] = orders.length;
 
