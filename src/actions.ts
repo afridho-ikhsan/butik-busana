@@ -9,6 +9,7 @@ import {
 } from "./types/checkout-types";
 import { RekeningBankQueryType } from "./types/rekening-bank";
 import { prisma } from "@/lib/prisma";
+import { sendPushToUser } from "@/lib/push";
 
 interface RajaOngkirDomesticLocationType {
   meta: { message: string; code: number; status: string };
@@ -232,6 +233,7 @@ export async function cancelOrder(orderId: string) {
   try {
     const order = await prisma.order.findUnique({
       where: { id: orderId },
+      include: { user: { select: { slug: true } } },
     });
     if (!order) {
       throw new Error("Order not found");
@@ -244,6 +246,22 @@ export async function cancelOrder(orderId: string) {
         where: { id: orderId },
         data: { status: "CANCELED" },
       });
+
+      const userSlug = order.user?.slug;
+      const orderUrl = userSlug
+        ? `/user/${userSlug}/transactions/${order.id}`
+        : "/";
+
+      try {
+        await sendPushToUser(order.userId, {
+          title: "Pesanan Dibatalkan",
+          body: `Pesanan #${order.orderNumber} berhasil dibatalkan.`,
+          url: orderUrl,
+          tag: `order-canceled-${order.id}`,
+          requireInteraction: true,
+        });
+      } catch (_e) {}
+
       return { success: true, message: "Order cancelled successfully" };
     }
     throw new Error("Only unpaid orders can be cancelled");
