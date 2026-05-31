@@ -89,6 +89,9 @@ model Order {
   metodePembayaran String?
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
+  paymentDeadlineReminder30SentAt DateTime?
+  paymentDeadlineReminder15SentAt DateTime?
+  paymentDeadlineReminder5SentAt DateTime?
   paymentEvidences PaymentEvidence[]
 }
 
