@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/utils/date-formatter";
+import { orderPaymentDeadlineAt } from "@/lib/payment-deadline";
 import Image from "next/image";
 import { CiSearch } from "react-icons/ci";
 import { RiShoppingBagFill } from "react-icons/ri";
@@ -85,9 +86,12 @@ async function TransactionList() {
             {orders.map((order) => {
               const lineItems = (order.lineItems as { productName?: string; image?: string; quantity?: number }[]) || [];
               const firstItem = lineItems[0];
-              const tomorrow = new Date(order.createdAt).getTime() + 24 * 60 * 60 * 1000;
+              const paymentDeadlineAt = orderPaymentDeadlineAt(order.createdAt);
+              const tomorrow = paymentDeadlineAt;
 
-              const isCanceled = Date.now() >= order.createdAt.getTime() + 24 * 60 * 60 * 1000 && order.paymentStatus !== "PAID";
+              const isCanceled =
+                Date.now() >= paymentDeadlineAt &&
+                order.paymentStatus !== "PAID";
 
               return (
                 <div className="flex flex-col" key={order.id}>

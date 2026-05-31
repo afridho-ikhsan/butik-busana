@@ -12,6 +12,28 @@
 
 Customer harus login, klik "Aktifkan notifikasi" di navbar, dan mengizinkan permission browser.
 
+### Deadline pembayaran (env)
+
+Semua timer UI, cancel otomatis, dan cron push memakai `src/lib/payment-deadline.ts`.
+
+| Variabel | Default | Keterangan |
+|----------|---------|------------|
+| `PAYMENT_DEADLINE_MINUTES` | `1440` (24 jam) | Lama order boleh belum bayar sebelum dibatalkan |
+| `PAYMENT_DEADLINE_REMINDER_MINUTES` | `30,15,5` | Push saat **sisa** waktu tepat X menit (maks. 3 nilai) |
+
+**Tes di production (deadline 16 menit, 3 push cepat):**
+
+```env
+PAYMENT_DEADLINE_MINUTES=16
+PAYMENT_DEADLINE_REMINDER_MINUTES=14,15,16
+```
+
+Setelah deploy + restart app, buat order baru → aktifkan notifikasi → tunggu ±1–2 menit (push 16 & 15 menit), lalu ±11 menit (push 14 menit = sisa ~14 menit dari total 16). Sesuaikan angka reminder agar semua ≤ `PAYMENT_DEADLINE_MINUTES`.
+
+Jadwalkan juga `cancel-expired-orders` (mis. tiap 1 menit saat tes) supaya order dibatalkan setelah 16 menit.
+
+Setelah tes, hapus atau kembalikan ke `1440` dan `30,15,5`.
+
 ---
 
 ## 1. Install dependencies
@@ -43,9 +65,9 @@ Tambah `CRON_SECRET` di env. Setiap request cron pakai header:
 
 | Endpoint | Fungsi |
 |----------|--------|
-| `GET /api/cron/payment-deadline-reminder` | Push saat sisa waktu pembayaran 30, 15, dan 5 menit (deadline = 24 jam sejak order dibuat) |
-| `GET /api/cron/payment-reminder` | Push order NOT_PAID &gt; 24 jam (opsional) |
-| `GET /api/cron/cancel-expired-orders` | Batalkan order NOT_PAID lewat 24 jam |
+| `GET /api/cron/payment-deadline-reminder` | Push sesuai `PAYMENT_DEADLINE_REMINDER_MINUTES` |
+| `GET /api/cron/payment-reminder` | Push order NOT_PAID lewat deadline (opsional) |
+| `GET /api/cron/cancel-expired-orders` | Batalkan order NOT_PAID lewat deadline |
 
 ### cron-job.org (payment deadline, tiap 1 menit)
 

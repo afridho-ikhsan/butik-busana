@@ -8,6 +8,7 @@ import { formatDate } from "@/utils/date-formatter";
 import { cancelOrder } from "@/actions";
 import { IoMdInformationCircleOutline } from "react-icons/io";
 import { OrderDetailContent } from "@/components/order-detail/order-detail-content";
+import { orderPaymentDeadlineAt } from "@/lib/payment-deadline";
 
 async function OrderDetailPage({
   params,
@@ -24,8 +25,9 @@ async function OrderDetailPage({
 
   if (!order) return notFound();
   
-  const isCanceled = Date.now() >= order.createdAt.getTime() + 24 * 60 * 60 * 1000
-  const tomorrowTimeStamp = new Date(order.createdAt).getTime() + 24 * 60 * 60 * 1000;
+  const paymentDeadlineAt = orderPaymentDeadlineAt(order.createdAt);
+  const isCanceled = Date.now() >= paymentDeadlineAt;
+  const tomorrowTimeStamp = paymentDeadlineAt;
 
   if (Date.now() > tomorrowTimeStamp && order.paymentStatus === "NOT_PAID") {
     await cancelOrder(order.id);

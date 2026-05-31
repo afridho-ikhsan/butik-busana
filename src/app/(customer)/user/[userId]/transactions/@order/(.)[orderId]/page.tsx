@@ -8,6 +8,7 @@ import TimerText from "@/components/timer-text";
 import { IoMdInformationCircleOutline } from "react-icons/io";
 import { cancelOrder } from "@/actions";
 import { OrderDetailContent } from "@/components/order-detail/order-detail-content";
+import { orderPaymentDeadlineAt } from "@/lib/payment-deadline";
 
 async function OrderDetailModalPage({
   params,
@@ -24,7 +25,7 @@ async function OrderDetailModalPage({
 
   if (!order) return notFound();
 
-  const tomorrowTimeStamp = new Date(order.createdAt).getTime() + 24 * 60 * 60 * 1000;
+  const tomorrowTimeStamp = orderPaymentDeadlineAt(order.createdAt);
 
   if (Date.now() > tomorrowTimeStamp && order.paymentStatus === "NOT_PAID") {
     await cancelOrder(order.id);

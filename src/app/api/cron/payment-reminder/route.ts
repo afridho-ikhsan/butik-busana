@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { PAYMENT_DEADLINE_MS } from "@/lib/payment-deadline";
 import { sendPushToUser } from "@/lib/push";
 
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -10,7 +11,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const hoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const hoursAgo = new Date(Date.now() - PAYMENT_DEADLINE_MS);
 
     const orders = await prisma.order.findMany({
       where: {

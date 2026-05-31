@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { PAYMENT_DEADLINE_MS } from "@/lib/payment-deadline";
 
 const CRON_SECRET = process.env.CRON_SECRET;
-const PAYMENT_DEADLINE_MS = 24 * 60 * 60 * 1000;
 
 export async function GET(req: NextRequest) {
   if (CRON_SECRET && req.headers.get("authorization") !== `Bearer ${CRON_SECRET}`) {

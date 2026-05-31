@@ -1,16 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { PAYMENT_DEADLINE_MS } from "@/lib/payment-deadline";
+import {
+  PAYMENT_DEADLINE_MS,
+  paymentDeadlineReminderMinutesList,
+} from "@/lib/payment-deadline";
 import { sendPushToUser } from "@/lib/push";
 
 const CRON_SECRET = process.env.CRON_SECRET;
 const CRON_WINDOW_MS = 60 * 1000;
 
-const paymentDeadlineReminders = [
-  { minutes: 30, sentField: "paymentDeadlineReminder30SentAt" as const },
-  { minutes: 15, sentField: "paymentDeadlineReminder15SentAt" as const },
-  { minutes: 5, sentField: "paymentDeadlineReminder5SentAt" as const },
-];
+const paymentDeadlineReminderSentFields = [
+  "paymentDeadlineReminder30SentAt",
+  "paymentDeadlineReminder15SentAt",
+  "paymentDeadlineReminder5SentAt",
+] as const;
 
 export async function GET(req: NextRequest) {
   if (CRON_SECRET && req.headers.get("authorization") !== `Bearer ${CRON_SECRET}`) {
@@ -19,9 +22,15 @@ export async function GET(req: NextRequest) {
 
   try {
     const now = Date.now();
-    const sentCounts = { 30: 0, 15: 0, 5: 0 };
+    const reminderMinutes = paymentDeadlineReminderMinutesList();
+    const sentCounts: Record<string, number> = {};
 
-    for (const { minutes, sentField } of paymentDeadlineReminders) {
+    for (let index = 0; index < reminderMinutes.length; index++) {
+      const minutes = reminderMinutes[index];
+      const sentField = paymentDeadlineReminderSentFields[index];
+      if (!sentField || minutes > PAYMENT_DEADLINE_MS / (60 * 1000)) continue;
+
+      sentCounts[String(minutes)] = 0;
       const remainingMaxMs = minutes * 60 * 1000;
       const remainingMinMs = remainingMaxMs - CRON_WINDOW_MS;
       const createdAtMax = new Date(now - PAYMENT_DEADLINE_MS + remainingMaxMs);
@@ -60,14 +69,18 @@ export async function GET(req: NextRequest) {
             where: { id: order.id },
             data: { [sentField]: new Date() },
           });
-          sentCounts[minutes as 30 | 15 | 5] += 1;
+          sentCounts[String(minutes)] += 1;
         } catch (_e) {}
       }
     }
 
+    const total = Object.values(sentCounts).reduce((sum, count) => sum + count, 0);
+
     return NextResponse.json({
       sent: sentCounts,
-      total: sentCounts[30] + sentCounts[15] + sentCounts[5],
+      total,
+      paymentDeadlineMinutes: PAYMENT_DEADLINE_MS / (60 * 1000),
+      reminderMinutes,
     });
   } catch (error) {
     console.error("Payment deadline reminder cron error:", error);
