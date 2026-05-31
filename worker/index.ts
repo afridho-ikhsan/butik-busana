@@ -7,8 +7,8 @@ sw.addEventListener("push", (event: PushEvent) => {
   const title = data.title || "Butik Busana";
   const options: NotificationOptions = {
     body: data.body || "",
-    icon: data.icon || "/icon-192.png",
-    badge: data.badge || "/icon-192.png",
+    icon: data.icon || "/logo-butik.png",
+    badge: data.badge || "/logo-butik.png",
     data: data.data || {},
     tag: data.tag || "default",
     requireInteraction: data.requireInteraction ?? false,

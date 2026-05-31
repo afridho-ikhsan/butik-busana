@@ -55,7 +55,7 @@ Salin output ke `.env.local`:
 ## 3. Tambah ikon PWA
 
 Letakkan file di `public/`:
-- `icon-192.png` (192x192 px)
+- `logo-butik.png` (192x192 px)
 - `icon-512.png` (512x512 px)
 
 ## 4. Cron
