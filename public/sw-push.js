@@ -1,3 +1,11 @@
+self.addEventListener("install", function () {
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", function (event) {
+  event.waitUntil(self.clients.claim());
+});
+
 self.addEventListener("push", function (event) {
   var data = event.data ? event.data.json() : {};
   var title = data.title || "Butik Busana";

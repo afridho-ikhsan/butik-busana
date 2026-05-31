@@ -1,8 +1,11 @@
 import webPush from "web-push";
 import { prisma } from "@/lib/prisma";
+import { normalizeVapidPublicKey } from "@/lib/vapid-public-key";
 
-const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
+const vapidPublicKey = normalizeVapidPublicKey(
+  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+);
+const vapidPrivateKey = normalizeVapidPublicKey(process.env.VAPID_PRIVATE_KEY);
 
 if (vapidPrivateKey && vapidPublicKey) {
   webPush.setVapidDetails(
