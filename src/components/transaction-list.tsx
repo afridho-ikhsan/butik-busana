@@ -10,6 +10,7 @@ import Link from "next/link";
 import NotFoundInfo from "@/components/not-found-info";
 import HelpButton from "@/components/buttons/help-button";
 import PayButton from "@/components/buttons/pay-button";
+import CancelOrderButton from "@/components/buttons/cancel-order-button";
 
 async function TransactionList() {
   const session = await getServerSession(authOptions);
@@ -24,8 +25,6 @@ async function TransactionList() {
     where: { userId: session.user.id },
     orderBy: { createdAt: "desc" },
   });
-
-  console.log(orders, 'orders');
 
   const userSlug = user?.slug || session.user.id;
 
@@ -124,14 +123,22 @@ async function TransactionList() {
                           </div>
                         )}
 
-                        {(order.paymentStatus === "NOT_PAID" && order.status !== "CANCELED" && !isCanceled) && (
-                          <PayButton
-                            orderId={order.id}
-                            orderNumber={order.orderNumber}
-                            buttonText="Belum Bayar"
-                            className="rounded-lg p-2 bg-red-100 text-red-500 hover:bg-red-500 hover:text-red-100 cursor-pointer z-10"
-                          />
-                        )}
+                        {order.paymentStatus === "NOT_PAID" &&
+                          order.status !== "CANCELED" &&
+                          !isCanceled && (
+                            <>
+                              <CancelOrderButton
+                                orderId={order.id}
+                                orderNumber={order.orderNumber}
+                              />
+                              <PayButton
+                                orderId={order.id}
+                                orderNumber={order.orderNumber}
+                                buttonText="Belum Bayar"
+                                className="rounded-lg p-2 bg-red-100 text-red-500 hover:bg-red-500 hover:text-red-100 cursor-pointer z-10"
+                              />
+                            </>
+                          )}
 
                         {((order.paymentStatus === "NOT_PAID" && order.status === "CANCELED" || isCanceled)) && (
                           <div className="rounded-lg p-2 bg-gray-300 text-gray-700 cursor-default">

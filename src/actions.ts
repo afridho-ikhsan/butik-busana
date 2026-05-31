@@ -236,15 +236,17 @@ export async function cancelOrder(orderId: string) {
     if (!order) {
       throw new Error("Order not found");
     }
+    if (order.status === "CANCELED") {
+      return { success: true, message: "Order cancelled successfully" };
+    }
     if (order.paymentStatus === "NOT_PAID") {
       await prisma.order.update({
         where: { id: orderId },
         data: { status: "CANCELED" },
       });
       return { success: true, message: "Order cancelled successfully" };
-    } else {
-      throw new Error("Only unpaid orders can be cancelled");
     }
+    throw new Error("Only unpaid orders can be cancelled");
   } catch (error) {
     console.error("Error cancelling order:", error);
     return { success: false, message: error };
