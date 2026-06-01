@@ -23,13 +23,15 @@ export type PushPayload = {
   requireInteraction?: boolean;
 };
 
-export async function sendPushToUser(userId: string, payload: PushPayload): Promise<void> {
-  if (!vapidPrivateKey || !vapidPublicKey) return;
-
-  const subs = await prisma.pushSubscription.findMany({
-    where: { userId },
-  });
-
+async function sendPushToSubscription(
+  subscription: {
+    id: string;
+    endpoint: string;
+    p256dh: string;
+    auth: string;
+  },
+  payload: PushPayload
+): Promise<void> {
   const sendPayload = JSON.stringify({
     title: payload.title,
     body: payload.body ?? "",
@@ -38,28 +40,62 @@ export async function sendPushToUser(userId: string, payload: PushPayload): Prom
     requireInteraction: payload.requireInteraction ?? false,
   });
 
-  const results = await Promise.allSettled(
-    subs.map(async (sub) => {
-      try {
-        await webPush.sendNotification(
-          {
-            endpoint: sub.endpoint,
-            keys: { p256dh: sub.p256dh, auth: sub.auth },
-          },
-          sendPayload,
-          { TTL: 60 * 60 * 24 }
-        );
-      } catch (e) {
-        if ((e as { statusCode?: number }).statusCode === 410 || (e as { statusCode?: number }).statusCode === 404) {
-          await prisma.pushSubscription.delete({ where: { id: sub.id } });
-        }
-        throw e;
-      }
-    })
-  );
+  try {
+    await webPush.sendNotification(
+      {
+        endpoint: subscription.endpoint,
+        keys: { p256dh: subscription.p256dh, auth: subscription.auth },
+      },
+      sendPayload,
+      { TTL: 60 * 60 * 24 }
+    );
+  } catch (e) {
+    if (
+      (e as { statusCode?: number }).statusCode === 410 ||
+      (e as { statusCode?: number }).statusCode === 404
+    ) {
+      await prisma.pushSubscription.delete({ where: { id: subscription.id } });
+    }
+    throw e;
+  }
+}
 
-  const failed = results.filter((r) => r.status === "rejected");
-  if (failed.length > 0 && failed.length === results.length) {
-    console.error("Push send failed for user", userId, failed);
+export async function sendPushToUser(
+  userId: string,
+  payload: PushPayload
+): Promise<void> {
+  if (!vapidPrivateKey || !vapidPublicKey) return;
+
+  const subscription = await prisma.pushSubscription.findFirst({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (!subscription) return;
+
+  try {
+    await sendPushToSubscription(subscription, payload);
+  } catch (e) {
+    console.error("Push send failed for user", userId, e);
+  }
+}
+
+export async function sendPushToGuestKey(
+  guestKey: string,
+  payload: PushPayload
+): Promise<void> {
+  if (!vapidPrivateKey || !vapidPublicKey) return;
+
+  const subscription = await prisma.pushSubscription.findFirst({
+    where: { guestKey },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (!subscription) return;
+
+  try {
+    await sendPushToSubscription(subscription, payload);
+  } catch (e) {
+    console.error("Push send failed for guest", guestKey, e);
   }
 }

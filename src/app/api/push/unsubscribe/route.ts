@@ -6,12 +6,11 @@ import { prisma } from "@/lib/prisma";
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const body = await req.json();
-    const { endpoint } = body as { endpoint?: string };
+    const { endpoint, guestKey } = body as {
+      endpoint?: string;
+      guestKey?: string;
+    };
 
     if (!endpoint || typeof endpoint !== "string") {
       return NextResponse.json(
@@ -20,9 +19,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    await prisma.pushSubscription.deleteMany({
-      where: { userId: session.user.id, endpoint },
-    });
+    const userId = session?.user?.id;
+
+    if (userId) {
+      await prisma.pushSubscription.deleteMany({
+        where: { endpoint, userId },
+      });
+    } else if (guestKey) {
+      await prisma.pushSubscription.deleteMany({
+        where: { endpoint, guestKey },
+      });
+    } else {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

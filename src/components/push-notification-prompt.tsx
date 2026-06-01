@@ -3,18 +3,26 @@
 import { usePushSubscription } from "@/hooks/usePushSubscription";
 import { useWindowDimensions } from "@/hooks/useWindowDimention";
 import { NotificationOutlined } from "@ant-design/icons";
-import { Button, message, Modal, Typography } from "antd";
+import { App, Button, Flex, Typography } from "antd";
 import { Bell, BellOff } from "lucide-react";
-import { useState } from "react";
+import { getOrCreateGuestPushKey } from "@/lib/guest-push-key";
+import { useEffect, useState } from "react";
 
 const { Text } = Typography;
-const { confirm } = Modal;
 
 const showTestPushButton =
-  process.env.NODE_ENV === "development" ||
   process.env.NEXT_PUBLIC_PUSH_TEST_ENABLED === "true";
 
 export default function PushNotificationPrompt() {
+  return (
+    <App>
+      <PushNotificationPromptContent />
+    </App>
+  );
+}
+
+function PushNotificationPromptContent() {
+  const { modal, message } = App.useApp();
   const {
     permission,
     subscribe,
@@ -25,13 +33,16 @@ export default function PushNotificationPrompt() {
   } = usePushSubscription();
   const [loading, setLoading] = useState(false);
   const [testLoading, setTestLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const { width } = useWindowDimensions();
 
-  if (!isLoggedIn) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleEnable = async () => {
     setLoading(true);
-    const t = setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       message.error("Terjadi kesalahan saat mengaktifkan notifikasi");
       setLoading(false);
     }, 15000);
@@ -49,21 +60,26 @@ export default function PushNotificationPrompt() {
       }
       message.error(result.error);
     } finally {
-      clearTimeout(t);
+      clearTimeout(timeoutId);
       setLoading(false);
     }
   };
 
   const handleDisable = async () => {
     setLoading(true);
-    const t = setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       message.error("Terjadi kesalahan saat menonaktifkan notifikasi");
       setLoading(false);
     }, 15000);
     try {
-      await unsubscribe();
+      const success = await unsubscribe();
+      if (success) {
+        message.success("Notifikasi dinonaktifkan");
+      } else {
+        message.error("Gagal menonaktifkan notifikasi");
+      }
     } finally {
-      clearTimeout(t);
+      clearTimeout(timeoutId);
       setLoading(false);
     }
   };
@@ -75,7 +91,11 @@ export default function PushNotificationPrompt() {
     }
     setTestLoading(true);
     try {
-      const res = await fetch("/api/push/test", { method: "POST" });
+      const res = await fetch("/api/push/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ guestKey: getOrCreateGuestPushKey() }),
+      });
       const data = (await res.json()) as { error?: string };
       if (res.ok) {
         message.success("Push dikirim — cek notifikasi perangkat");
@@ -91,8 +111,19 @@ export default function PushNotificationPrompt() {
 
   const isActive = permission === "granted" && isSubscribed;
 
+  if (!mounted) {
+    return (
+      <Button
+        type="text"
+        size="small"
+        icon={<Bell className="w-5 h-5" />}
+        className="text-slate-600 hover:text-blue-600"
+      />
+    );
+  }
+
   return (
-    <>
+    <Flex gap={8}>
       <Button
         type="text"
         size="small"
@@ -106,7 +137,7 @@ export default function PushNotificationPrompt() {
         disabled={loading}
         onClick={() =>
           isActive
-            ? confirm({
+            ? modal.confirm({
                 title: "Konfirmasi nonaktifkan notifikasi?",
                 icon: <NotificationOutlined />,
                 closable: true,
@@ -118,12 +149,12 @@ export default function PushNotificationPrompt() {
                   </Text>
                 ),
                 onOk() {
-                  handleDisable();
+                  return handleDisable();
                 },
                 okText: "Nonaktifkan",
                 cancelText: "Batal",
               })
-            : confirm({
+            : modal.confirm({
                 title: "Konfirmasi aktivasi notifikasi?",
                 icon: <NotificationOutlined />,
                 closable: true,
@@ -136,12 +167,14 @@ export default function PushNotificationPrompt() {
                     </Text>
                     <br />
                     <Text className="!text-xs !text-slate-600">
-                      Anda perlu memberikan izin untuk pengaktifan pertama kali
+                      Anda perlu memberikan izin untuk pengaktifan pertama kali.
+                      {!isLoggedIn &&
+                        " Notifikasi pesanan aktif setelah Anda login."}
                     </Text>
                   </>
                 ),
                 onOk() {
-                  handleEnable();
+                  return handleEnable();
                 },
                 okText: "Izinkan",
                 cancelText: "Tolak",
@@ -156,9 +189,7 @@ export default function PushNotificationPrompt() {
             ? "Memuat..."
             : isActive
               ? "Nonaktifkan notifikasi"
-              : permission === "granted"
-                ? "Selesaikan aktivasi push"
-                : "Aktifkan notifikasi"}
+              : "Aktifkan notifikasi"}
       </Button>
       {showTestPushButton && (
         <Button
@@ -171,6 +202,7 @@ export default function PushNotificationPrompt() {
           Test Push
         </Button>
       )}
-    </>
+    </Flex>
   );
 }
+

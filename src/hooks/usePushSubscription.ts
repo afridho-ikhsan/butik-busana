@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { getOrCreateGuestPushKey } from "@/lib/guest-push-key";
 import { vapidPublicKeyToApplicationServerKey } from "@/lib/vapid-public-key";
 
 const VAPID_PUBLIC = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
@@ -108,6 +109,40 @@ export function usePushSubscription() {
     syncPushSubscriptionState();
   }, [permission, syncPushSubscriptionState]);
 
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    if (permission !== "granted") return;
+    if (!isSubscribed) return;
+
+    const linkGuestPushToAccount = async () => {
+      try {
+        const registration = await getPushServiceWorkerRegistration();
+        const subscription = await registration.pushManager.getSubscription();
+        if (!subscription) return;
+
+        const guestKey = getOrCreateGuestPushKey();
+        await fetch("/api/push/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            endpoint: subscription.endpoint,
+            keys: {
+              p256dh: btoa(
+                String.fromCharCode(...new Uint8Array(subscription.getKey("p256dh")!))
+              ),
+              auth: btoa(
+                String.fromCharCode(...new Uint8Array(subscription.getKey("auth")!))
+              ),
+            },
+            guestKey,
+          }),
+        });
+      } catch {}
+    };
+
+    linkGuestPushToAccount();
+  }, [session?.user?.id, permission, isSubscribed]);
+
   const subscribe = useCallback(async (): Promise<SubscribeResult> => {
     try {
       if (!applicationServerKey) {
@@ -116,9 +151,6 @@ export function usePushSubscription() {
           error:
             "NEXT_PUBLIC_VAPID_PUBLIC_KEY tidak valid. Jalankan: node scripts/generate-vapid.js lalu salin ulang ke .env",
         };
-      }
-      if (!session?.user) {
-        return { ok: false, error: "Login dulu untuk mengaktifkan notifikasi" };
       }
       if (typeof window === "undefined" || !("Notification" in window)) {
         return { ok: false, error: "Browser tidak mendukung notifikasi" };
@@ -152,26 +184,35 @@ export function usePushSubscription() {
         });
       }
 
-      const payload = {
-        endpoint: subscription.endpoint,
-        keys: {
-          p256dh: btoa(
-            String.fromCharCode(...new Uint8Array(subscription.getKey("p256dh")!))
-          ),
-          auth: btoa(
-            String.fromCharCode(...new Uint8Array(subscription.getKey("auth")!))
-          ),
-        },
-      };
+      const guestKey = getOrCreateGuestPushKey();
 
       const res = await fetch("/api/push/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          endpoint: subscription.endpoint,
+          keys: {
+            p256dh: btoa(
+              String.fromCharCode(...new Uint8Array(subscription.getKey("p256dh")!))
+            ),
+            auth: btoa(
+              String.fromCharCode(...new Uint8Array(subscription.getKey("auth")!))
+            ),
+          },
+          guestKey,
+        }),
       });
 
       if (!res.ok) {
-        return { ok: false, error: "Gagal menyimpan subscription ke server" };
+        const data = (await res.json().catch(() => ({}))) as {
+          error?: string;
+          detail?: string;
+        };
+        const serverMessage = data.detail || data.error;
+        return {
+          ok: false,
+          error: serverMessage || "Gagal menyimpan subscription ke server",
+        };
       }
 
       setIsSubscribed(true);
@@ -196,11 +237,13 @@ export function usePushSubscription() {
         return true;
       }
 
+      const guestKey = getOrCreateGuestPushKey();
+
       const res = await withTimeout(
         fetch("/api/push/unsubscribe", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ endpoint: subscription.endpoint }),
+          body: JSON.stringify({ endpoint: subscription.endpoint, guestKey }),
         }),
         FETCH_MS,
         "Unsubscribe request timeout"
