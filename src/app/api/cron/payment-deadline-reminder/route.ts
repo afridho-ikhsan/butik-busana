@@ -74,9 +74,20 @@ export async function GET(req: NextRequest) {
           continue;
         }
 
+        let minuteLabel = minutes
+
+        switch (minutes) {
+          case 15: {
+            minuteLabel = 30; break;
+          }
+          case 5: minuteLabel = 15; break;
+          case 5: minuteLabel = 5; break;
+          default: minuteLabel = minutes; break;
+        }
+
         try {
           await sendPushToUser(order.userId, {
-            title: `Pembayaran ${minutes} menit lagi habis`,
+            title: `Pembayaran ${minuteLabel} menit lagi habis`,
             body: `Pesanan #${order.orderNumber} akan dibatalkan jika belum dibayar.`,
             url: orderUrl,
             tag: `payment-deadline-${minutes}-${order.id}`,
