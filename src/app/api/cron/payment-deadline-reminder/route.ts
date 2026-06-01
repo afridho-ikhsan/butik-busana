@@ -80,8 +80,8 @@ export async function GET(req: NextRequest) {
           case 15: {
             minuteLabel = 30; break;
           }
-          case 5: minuteLabel = 15; break;
-          case 5: minuteLabel = 5; break;
+          case 14: minuteLabel = 15; break;
+          case 13: minuteLabel = 5; break;
           default: minuteLabel = minutes; break;
         }
 
