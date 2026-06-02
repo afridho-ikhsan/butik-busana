@@ -1,0 +1,80 @@
+@startuml skripsi_batalkan_pesanan_manual_sequence
+title Sequence Diagram — Batalkan Pesanan (Manual)\nModul Transaksi, CancelOrderButton
+
+skinparam SequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor Pelanggan as pengguna
+participant "DaftarTransaksi" as daftar
+participant "CancelOrderButton" as tombol
+participant "cancelOrder\nServer Action" as action
+database "BasisData\nPrisma" as db
+participant "Web Push\nsendPushToUser" as push
+
+pengguna -> daftar: Membuka halaman daftar transaksi
+activate daftar
+daftar -> pengguna: Menampilkan tombol Batalkan\npada pesanan belum bayar
+deactivate daftar
+
+pengguna -> tombol: Menekan Batalkan
+activate tombol
+tombol -> pengguna: Modal konfirmasi\nnomor pesanan
+
+alt Memilih Tutup atau menutup dialog
+  tombol -> pengguna: Dialog ditutup
+  deactivate tombol
+else Memilih Batalkan pada dialog
+  tombol -> action: cancelOrder orderId
+  activate action
+
+  action -> db: findUnique order\ninclude user slug
+  activate db
+  db --> action: Data pesanan
+  deactivate db
+
+  alt Pesanan tidak ditemukan
+    action --> tombol: success false
+    deactivate action
+    tombol -> pengguna: message.error gagal membatalkan
+    deactivate tombol
+  else Status sudah CANCELED
+    action --> tombol: success true
+    deactivate action
+    tombol -> pengguna: message.success berhasil dibatalkan
+    tombol -> tombol: router.refresh
+    tombol -> pengguna: Daftar transaksi diperbarui
+    deactivate tombol
+  else paymentStatus bukan NOT_PAID
+    action --> tombol: success false
+    deactivate action
+    tombol -> pengguna: message.error gagal membatalkan
+    deactivate tombol
+  else Pesanan belum bayar dapat dibatalkan
+    action -> db: update status CANCELED
+    activate db
+    db --> action: Konfirmasi update
+    deactivate db
+
+    action -> push: sendPushToUser\nPesanan Dibatalkan
+    activate push
+    push -> db: findFirst PushSubscription userId
+    activate db
+    db --> push: Langganan atau kosong
+    deactivate db
+    opt Ada langganan push
+      push -> push: webPush.sendNotification
+      push --> pengguna: Notifikasi push perangkat
+    end
+    push --> action: Selesai atau galat diabaikan
+    deactivate push
+
+    action --> tombol: success true
+    deactivate action
+    tombol -> pengguna: message.success berhasil dibatalkan
+    tombol -> tombol: router.refresh
+    tombol -> pengguna: Status pesanan tampil Dibatalkan
+    deactivate tombol
+  end
+end
+
+@enduml

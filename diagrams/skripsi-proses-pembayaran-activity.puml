@@ -1,0 +1,92 @@
+@startuml skripsi_proses_pembayaran_activity
+title Activity Diagram — Proses Pembayaran (VA, QRIS, E-Wallet)\nModul Transaksi, PaymentPage + Midtrans + Notifikasi Push
+
+skinparam ActivityFontSize 12
+skinparam TitleFontSize 14
+
+|Pelanggan|
+start
+:Membuka modal pembayaran pesanan\nPayButton atau keranjang;
+
+|HalamanPembayaran|
+:Memuat skrip Midtrans Snap\nuseMidtransInit;
+:Menampilkan rekening transfer,\nnominal total, unggah bukti,\ndan tombol Bayar VA QRIS;
+
+|Pelanggan|
+if (Memilih metode pembayaran?) then (Transfer manual\n+ bukti foto)
+  |HalamanPembayaran|
+  :Unggah bukti transfer via Cloudinary;
+  :Menekan Kirim bukti pembayaran;
+  :Menyimpan bukti ke basis data\naddBuktiPembayaran;
+  |Pelanggan|
+  :Menunggu review admin;
+  |Admin|
+  :Menyetujui pembayaran pesanan;
+  |Server|
+  :Memperbarui paymentStatus menjadi PAID;
+  :Mengirim push Pembayaran Disetujui\nsendPushToUser;
+else (Virtual Account / QRIS / E-Wallet)
+  |Pelanggan|
+  :Menekan Bayar Virtual Account / QRIS;
+
+  |HalamanPembayaran|
+  if (Sudah login?) then (tidak)
+    :Menampilkan toast\nsilakan login terlebih dahulu;
+    stop
+  else (ya)
+  endif
+  :Menyusun data checkout dari pesanan;
+  :Memanggil redirectToCheckout\ndan orderTokenizer;
+
+  |Midtrans Snap|
+  :Membuat token transaksi Snap;
+  :Membuka popup Snap pay\nVA QRIS e-wallet;
+
+  |Pelanggan|
+  :Menyelesaikan pembayaran\npada antarmuka Midtrans;
+
+  |Midtrans Gateway|
+  :Mengirim notifikasi webhook POST\nke /api/midtrans-notification;
+
+  |Server|
+  if (transaction_status settlement atau capture?) then (ya)
+    :Memperbarui pesanan APPROVED\npaymentStatus PAID;
+    :Menyimpan bukti invoice Midtrans;
+    :Mengirim push Pembayaran Berhasil\nPesanan telah dibayar;
+  elseif (deny cancel expire failure?) then (ya)
+    :Mengirim push Pembayaran Gagal;
+  else (status lain)
+    stop
+  endif
+endif
+
+|Server|
+if (Pelanggan punya langganan push?) then (tidak)
+  :Push tidak dikirim ke perangkat;
+else (ya)
+  :web-push mengirim payload\nke endpoint langganan;
+endif
+
+|Service Worker PWA|
+if (Event push diterima?) then (ya)
+  :showNotification judul dan isi\nicon badge tag requireInteraction;
+  |Pelanggan|
+  :Notifikasi sistem tampil\npada perangkat;
+  if (Mengetuk notifikasi?) then (ya)
+    |Service Worker PWA|
+    :notificationclick membuka atau fokus\nhalaman url transaksi;
+    |Pelanggan|
+    :Halaman detail transaksi ditampilkan;
+  else (tidak)
+  endif
+else (tidak)
+endif
+
+|HalamanPembayaran|
+if (Metode Midtrans dan onSuccess Snap?) then (ya)
+  :Mengalihkan ke halaman daftar transaksi;
+endif
+
+stop
+
+@enduml

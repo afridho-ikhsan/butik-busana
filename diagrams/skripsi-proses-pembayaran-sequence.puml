@@ -1,0 +1,124 @@
+@startuml skripsi_proses_pembayaran_sequence
+title Sequence Diagram — Proses Pembayaran (VA, QRIS, E-Wallet)\nModul Transaksi, PaymentPage + Midtrans
+
+skinparam SequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor Pelanggan as pengguna
+participant "HalamanPembayaran\nPaymentPage" as halaman
+participant "orderService\ngetOrder" as orderSvc
+participant "redirectToCheckout" as checkout
+participant "orderTokenizer\nServer Action" as tokenizer
+participant "Midtrans Snap" as snap
+participant "Midtrans Gateway" as midtrans
+participant "RuteMidtransNotification\nPOST webhook" as webhook
+database "BasisData\nPrisma" as db
+participant "Web Push\nsendPushToUser" as push
+participant "Service Worker\nsw-push.js" as sw
+
+pengguna -> halaman: Membuka modal pembayaran pesanan
+activate halaman
+halaman -> halaman: useMidtransInit memuat skrip Snap
+halaman -> orderSvc: getOrder orderId
+activate orderSvc
+orderSvc -> db: Mengambil data pesanan
+activate db
+db --> orderSvc: Order lineItems total
+deactivate db
+orderSvc --> halaman: orderData
+deactivate orderSvc
+halaman -> pengguna: Rekening nominal unggah bukti\ndan tombol Bayar VA QRIS
+deactivate halaman
+
+alt Transfer manual dan bukti foto
+  pengguna -> halaman: Unggah bukti via Cloudinary
+  activate halaman
+  pengguna -> halaman: Menekan Kirim bukti
+  halaman -> db: addBuktiPembayaran
+  activate db
+  db --> halaman: PaymentEvidence tersimpan
+  deactivate db
+  halaman -> pengguna: Toast bukti berhasil dikirim
+  deactivate halaman
+  note over pengguna, db
+    Review admin PATCH approve
+    mengubah PAID dan push terpisah
+  end note
+else Virtual Account QRIS E-Wallet
+  pengguna -> halaman: Menekan Bayar Virtual Account / QRIS
+  activate halaman
+
+  alt Belum login
+    halaman -> pengguna: Toast silakan login
+    deactivate halaman
+  else Sudah login
+    halaman -> halaman: Menyusun checkoutData\ndari orderData dan member
+    halaman -> checkout: redirectToCheckout toMidtrans true
+    activate checkout
+
+    checkout -> tokenizer: orderTokenizer checkoutData
+    activate tokenizer
+    tokenizer -> snap: createTransactionToken\nmetadata orderId memberId
+    activate snap
+    snap --> tokenizer: token Snap
+    deactivate snap
+    tokenizer --> checkout: token
+    deactivate tokenizer
+
+    checkout -> checkout: waitForSnap
+    checkout -> snap: snap.pay token
+    activate snap
+    snap -> pengguna: Popup pilih VA QRIS e-wallet
+    pengguna -> snap: Menyelesaikan pembayaran
+    deactivate snap
+
+    par Callback klien
+      snap --> checkout: onSuccess
+      checkout -> pengguna: Redirect ke daftar transaksi
+    else Notifikasi server Midtrans
+      midtrans -> webhook: POST transaction_status\nmetadata orderId
+      activate webhook
+
+      alt settlement atau capture
+        webhook -> db: update order PAID APPROVED\nsimpan bukti invoice
+        activate db
+        db --> webhook: Order diperbarui
+        deactivate db
+
+        webhook -> push: sendPushToUser Pembayaran Berhasil
+        activate push
+        push -> db: findFirst PushSubscription
+        activate db
+        db --> push: Langganan
+        deactivate db
+        opt Ada langganan
+          push -> push: webPush.sendNotification
+          push -> sw: Payload push
+          activate sw
+          sw -> pengguna: showNotification
+          deactivate sw
+        end
+        push --> webhook: Selesai
+        deactivate push
+        webhook --> midtrans: JSON Pembayaran Berhasil
+      else deny cancel expire failure
+        webhook -> push: sendPushToUser Pembayaran Gagal
+        activate push
+        push -> sw: Payload push
+        activate sw
+        sw -> pengguna: showNotification gagal
+        deactivate sw
+        push --> webhook: Selesai
+        deactivate push
+        webhook --> midtrans: JSON Pembayaran Gagal
+      end
+      deactivate webhook
+    end
+
+    checkout --> halaman: Popup ditutup
+    deactivate checkout
+    deactivate halaman
+  end
+end
+
+@enduml

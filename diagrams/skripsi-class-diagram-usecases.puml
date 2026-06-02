@@ -1,11 +1,11 @@
 @startuml skripsi_class_diagram_usecases
-title Class Diagram — Domain terkait use case skripsi\Butik Busana (klien pelanggan)
+title Class Diagram — Domain terkait use case skripsi\nButik Busana Fashion (PWA, pelanggan)
 
 skinparam classAttributeIconSize 0
 skinparam PackagePadding 10
 skinparam RoundCorner 6
 
-package "Otentikasi — masuk daftar keluar" {
+package "Otentikasi" {
   class Role {
     +id : String
     +name : String
@@ -26,12 +26,13 @@ package "Otentikasi — masuk daftar keluar" {
   User "n" --> "0..1" Role : berperan
 }
 
-package "Lihat katalog — akses daring maupun luring" {
+package "Katalog Produk" {
   class Collection {
     +id : String
     +name : String
     +slug : String
     +imageUrl : String
+    +numberOfProducts : Int
   }
 
   class Product {
@@ -47,14 +48,10 @@ package "Lihat katalog — akses daring maupun luring" {
     +collectionIds : String[]
   }
 
-  Product ..> Collection : penyaringan\nlewat id koleksi
-  note bottom of Product
-    Tampilan luring memakai cadangan
-    Workbox snapshot klien
-  end note
+  Product ..> Collection : penyaringan\nlewat collectionIds
 }
 
-package "Keranjang — tambah hapus barang" {
+package "Keranjang Belanja" {
   class Cart {
     +id : String
     +userId : String
@@ -78,7 +75,7 @@ package "Keranjang — tambah hapus barang" {
   end note
 }
 
-package "Checkout — pesanan pembayaran" {
+package "Transaksi" {
   enum PaymentStatus {
     NOT_PAID
     PAID
@@ -100,6 +97,9 @@ package "Checkout — pesanan pembayaran" {
     +layananKurir : String
     +catatan : String
     +metodePembayaran : String
+    +paymentDeadlineReminder30SentAt : DateTime
+    +paymentDeadlineReminder15SentAt : DateTime
+    +paymentDeadlineReminder5SentAt : DateTime
   }
 
   class PaymentEvidence {
@@ -120,26 +120,54 @@ package "Checkout — pesanan pembayaran" {
 
   Order *-- "0..*" PaymentEvidence
   Order --> PaymentStatus
-  Order ..> RekeningBank : referensi manual\nuntuk transfer
 
   note bottom of Order
-    Pesanan tamu memakai User sistem
-    guest akun khusus
+    status: APPROVED atau CANCELED
+    Pembayaran: Midtrans Snap VA QRIS e-wallet
+    atau bukti transfer manual + approve admin
+    Pesanan tamu memakai User sistem guest
   end note
+
+  Order ..> RekeningBank : referensi transfer manual
 }
 
-package "Notifikasi push — langganan terima" {
+package "Notifikasi PWA" {
   class PushSubscription {
     +id : String
     +userId : String
+    +guestKey : String
     +endpoint : String
     +p256dh : String
     +auth : String
     +userAgent : String
   }
 
-  User "1" -- "0..*" PushSubscription
+  User "1" -- "0..*" PushSubscription : terdaftar
+  Order ..> PushSubscription : push via userId\npesanan dan pembayaran
+
+  note bottom of PushSubscription
+    userId opsional saat tamu
+    guestKey dari localStorage
+    endpoint unik per perangkat
+  end note
 }
+
+package "Layanan Eksternal" <<Cloud>> {
+  class Midtrans <<external>> {
+    +createTransactionToken()
+    +kirimNotifikasiWebhook()
+  }
+
+  class SistemCron <<external>> {
+    +paymentDeadlineReminder()
+    +cancelExpiredOrders()
+  }
+}
+
+Order ..> Midtrans : proses pembayaran
+SistemCron ..> Order : pengingat deadline\npembatalan otomatis
+Midtrans ..> Order : update PAID via webhook
+SistemCron ..> User : push pengingat dan batal
 
 User "1" -- "0..1" Cart
 User "1" -- "0..*" Order

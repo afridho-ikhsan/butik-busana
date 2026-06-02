@@ -1,0 +1,79 @@
+@startuml skripsi_terima_notifikasi_deadline_pembayaran_sequence
+title Sequence Diagram — Terima Notifikasi Pengingat Deadline Pembayaran\nModul Notifikasi PWA, GET /api/cron/payment-deadline-reminder
+
+skinparam SequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor "Sistem Cron\ncron-job.org" as cron
+actor Pelanggan as pengguna
+participant "RutePaymentDeadlineReminder" as rute
+database "BasisData\nPrisma" as db
+participant "Web Push\nsendPushToUser" as push
+participant "Service Worker\nsw-push.js" as sw
+
+cron -> rute: GET /api/cron/payment-deadline-reminder\nAuthorization Bearer CRON_SECRET
+activate rute
+
+alt Token tidak valid
+  rute --> cron: 401 Unauthorized
+  deactivate rute
+else Token valid
+  rute -> rute: reminderMinutes dari env\ndefault 30 15 5
+
+  loop Untuk setiap ambang menit pengingat
+    rute -> rute: Hitung createdAtMin dan createdAtMax\njendela waktu pengingat
+
+    rute -> db: findMany NOT_PAID\nbelum sentAt ambang ini
+    activate db
+    db --> rute: Daftar pesanan cocok
+    deactivate db
+
+    loop Untuk setiap pesanan
+      rute -> db: count PushSubscription userId
+      activate db
+      db --> rute: subscriptionCount
+      deactivate db
+
+      alt subscriptionCount 0
+        rute -> rute: pushFailedNoSubscription increment
+      else Ada langganan push
+        rute -> push: sendPushToUser\nPembayaran X menit lagi habis
+        activate push
+        push -> db: findFirst PushSubscription
+        activate db
+        db --> push: Endpoint keys
+        deactivate db
+
+        alt Pengiriman push berhasil
+          push -> push: webPush.sendNotification
+          push -> sw: Payload push
+          activate sw
+          sw -> pengguna: showNotification pengingat deadline
+          deactivate sw
+
+          rute -> db: update paymentDeadlineReminderSentAt
+          activate db
+          db --> rute: Tanda pengingat tersimpan
+          deactivate db
+          rute -> rute: sent increment
+        else Pengiriman push gagal
+          rute -> rute: pushFailed increment
+        end
+        push --> rute: Selesai
+        deactivate push
+
+        opt Pelanggan mengetuk notifikasi
+          pengguna -> sw: notificationclick
+          activate sw
+          sw -> pengguna: Buka halaman detail transaksi
+          deactivate sw
+        end
+      end
+    end
+  end
+
+  rute --> cron: JSON sent matched pushFailed total
+  deactivate rute
+end
+
+@enduml

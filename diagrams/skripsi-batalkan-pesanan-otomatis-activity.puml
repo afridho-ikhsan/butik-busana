@@ -1,0 +1,61 @@
+@startuml skripsi_batalkan_pesanan_otomatis_activity
+title Activity Diagram — Batalkan Pesanan Kedaluwarsa (Otomatis)\nModul Transaksi, GET /api/cron/cancel-expired-orders
+
+skinparam ActivityFontSize 12
+skinparam TitleFontSize 14
+
+|Sistem Cron|
+start
+:Menjalankan jadwal berkala\nmisal setiap 1 menit via cron-job.org;
+
+:Rute GET /api/cron/cancel-expired-orders\nheader Authorization Bearer CRON_SECRET;
+
+|RuteCancelExpiredOrders|
+if (CRON_SECRET diatur dan token tidak valid?) then (ya)
+  :Mengembalikan respons 401 Unauthorized;
+  stop
+else (tidak)
+endif
+
+:Rute menghitung batas waktu\nnow dikurangi PAYMENT_DEADLINE_MS;
+
+|BasisData|
+:Mencari pesanan NOT_PAID\nstatus bukan CANCELED\ncreatedAt lebih lama dari batas waktu;
+
+|RuteCancelExpiredOrders|
+if (Daftar pesanan kedaluwarsa kosong?) then (ya)
+  :Mengembalikan JSON\ncanceled 0 pushSent 0;
+  stop
+else (tidak)
+endif
+
+repeat
+  |BasisData|
+  :Memperbarui status pesanan menjadi CANCELED;
+
+  |RuteCancelExpiredOrders|
+  :Menyusun URL detail transaksi\nberdasarkan slug pengguna;
+
+  |BasisData|
+  :Menghitung langganan push\nuntuk userId pemilik pesanan;
+
+  |RuteCancelExpiredOrders|
+  if (Pengguna punya langganan push?) then (tidak)
+    :Lewati pengiriman push\nlanjut pesanan berikutnya;
+  else (ya)
+    :Mengirim push Pesanan Dibatalkan\nkarena batas waktu pembayaran habis;
+    if (Pengiriman push berhasil?) then (ya)
+      :Menambah penghitung pushSent;
+    else (tidak)
+      :Abaikan galat push\nlanjut pesanan berikutnya;
+    endif
+  endif
+
+repeat while (Masih ada pesanan dalam daftar?) is (ya)
+->tidak;
+
+:Mengembalikan JSON canceled dan pushSent;
+
+stop
+
+@enduml

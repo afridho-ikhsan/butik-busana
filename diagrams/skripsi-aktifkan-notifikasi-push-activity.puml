@@ -1,0 +1,106 @@
+@startuml skripsi_aktifkan_notifikasi_push_activity
+title Activity Diagram — Aktifkan Notifikasi Push\nModul Notifikasi PWA, PushNotificationPrompt
+
+skinparam ActivityFontSize 12
+skinparam TitleFontSize 14
+
+|Pelanggan|
+start
+:Membuka aplikasi PWA\nnavbar menampilkan tombol notifikasi;
+
+|PushNotificationPrompt|
+if (Komponen sudah mounted di klien?) then (belum)
+  :Menampilkan placeholder tombol Bell;
+  stop
+else (sudah)
+endif
+
+if (Izin granted dan sudah subscribed?) then (ya)
+  :Tombol menampilkan Nonaktifkan notifikasi\nbukan alur aktivasi;
+  stop
+else (belum aktif)
+endif
+
+|Pelanggan|
+:Menekan Aktifkan notifikasi;
+
+|PushNotificationPrompt|
+:Menampilkan dialog konfirmasi aktivasi\nIzinkan atau Tolak;
+
+|Pelanggan|
+if (Memilih Tolak atau menutup dialog?) then (ya)
+  :Tidak ada perubahan izin atau langganan;
+  stop
+else (tidak)
+  :Menekan Izinkan;
+endif
+
+|PushNotificationPrompt|
+:handleEnable memeriksa VAPID public key valid;
+
+if (VAPID tidak valid?) then (ya)
+  :Menampilkan pesan galat konfigurasi VAPID;
+  stop
+else (valid)
+endif
+
+|usePushSubscription|
+if (Browser mendukung Notification\nService Worker PushManager?) then (tidak)
+  |PushNotificationPrompt|
+  :Menampilkan pesan browser tidak mendukung;
+  stop
+else (ya)
+endif
+
+if (Izin notifikasi sudah denied?) then (ya)
+  |PushNotificationPrompt|
+  :Menampilkan pesan izin diblokir di browser;
+  stop
+elseif (Izin masih default?) then (ya)
+  |Browser|
+  :Notification.requestPermission;
+  |Pelanggan|
+  :Memilih izinkan atau tolak di prompt browser;
+  if (Izin ditolak?) then (ya)
+    |PushNotificationPrompt|
+    :Menampilkan pesan izin notifikasi ditolak;
+    stop
+  else (granted)
+  endif
+else (sudah granted)
+endif
+
+|usePushSubscription|
+:Mendaftarkan atau memakai service worker sw-push.js;
+:pushManager.subscribe dengan kunci VAPID\nuserVisibleOnly true;
+:Membuat atau mengambil guestKey dari localStorage;
+
+|RutePushSubscribe|
+:Menerima POST /api/push/subscribe\nendpoint keys guestKey;
+
+if (Pelanggan sudah login?) then (ya)
+  :Menghubungkan langganan guest ke userId\nhapus endpoint lama user lain;
+  :Menyimpan atau memperbarui PushSubscription dengan userId;
+else (belum login)
+  :Menyimpan PushSubscription dengan guestKey;
+endif
+
+|BasisData|
+:Rekaman langganan push tersimpan;
+
+|usePushSubscription|
+:setIsSubscribed true;
+
+|PushNotificationPrompt|
+:Menampilkan pesan Notifikasi push aktif;
+
+|Pelanggan|
+if (Login setelah aktivasi sebagai guest?) then (ya)
+  |usePushSubscription|
+  :Otomatis memanggil subscribe lagi\ndengan guestKey untuk mengaitkan ke akun;
+else (sudah login saat aktivasi)
+endif
+
+stop
+
+@enduml

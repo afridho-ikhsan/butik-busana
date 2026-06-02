@@ -1,0 +1,74 @@
+@startuml skripsi_batalkan_pesanan_manual_activity
+title Activity Diagram — Batalkan Pesanan (Manual)\nModul Transaksi, CancelOrderButton
+
+skinparam ActivityFontSize 12
+skinparam TitleFontSize 14
+
+|Pelanggan|
+start
+:Membuka daftar transaksi\n/user/.../transactions;
+
+|DaftarTransaksi|
+if (Pesanan belum bayar,\nbukan status CANCELED,\ndan belum melewati deadline?) then (ya)
+  :Menampilkan tombol Batalkan\npada baris pesanan;
+else (tidak)
+  :Tombol Batalkan tidak ditampilkan;
+  stop
+endif
+
+|Pelanggan|
+:Menekan tombol Batalkan;
+
+|CancelOrderButton|
+:Menampilkan dialog konfirmasi\nBatalkan pesanan dengan nomor pesanan;
+
+|Pelanggan|
+if (Memilih Tutup atau menutup dialog?) then (ya)
+  |CancelOrderButton|
+  :Menutup dialog tanpa perubahan data;
+  stop
+else (tidak)
+  :Menekan Batalkan pada dialog;
+endif
+
+|CancelOrderButton|
+:Memanggil cancelOrder orderId\nserver action;
+
+|Server|
+:Memuat data pesanan dari basis data;
+
+|BasisData|
+:Mengembalikan rekaman pesanan;
+
+|Server|
+if (Pesanan ditemukan?) then (tidak)
+  |CancelOrderButton|
+  :Menampilkan pesan gagal membatalkan;
+  stop
+else (ya)
+endif
+
+if (Status pesanan sudah CANCELED?) then (ya)
+  |CancelOrderButton|
+  :Menampilkan pesan berhasil dibatalkan;
+  :Memperbarui tampilan daftar transaksi;
+  stop
+else (tidak)
+endif
+
+if (paymentStatus NOT_PAID?) then (ya)
+  |BasisData|
+  :Memperbarui status pesanan menjadi CANCELED;
+  |Server|
+  :Mengirim notifikasi push\nPesanan Dibatalkan ke pengguna;
+  |CancelOrderButton|
+  :Menampilkan pesan berhasil dibatalkan;
+  :router.refresh memuat ulang daftar;
+  stop
+else (tidak)
+  |CancelOrderButton|
+  :Menampilkan pesan gagal membatalkan\nhanya pesanan belum bayar yang bisa dibatalkan;
+  stop
+endif
+
+@enduml

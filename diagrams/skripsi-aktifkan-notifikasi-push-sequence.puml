@@ -1,0 +1,108 @@
+@startuml skripsi_aktifkan_notifikasi_push_sequence
+title Sequence Diagram — Aktifkan Notifikasi Push\nModul Notifikasi PWA, PushNotificationPrompt
+
+skinparam SequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor Pelanggan as pengguna
+participant "PushNotificationPrompt" as prompt
+participant "usePushSubscription" as hook
+participant "Browser\nNotification SW PushManager" as browser
+participant "localStorage\nguest-push-key" as storage
+participant "RutePushSubscribe\nPOST /api/push/subscribe" as rute
+database "BasisData\nPushSubscription" as db
+
+pengguna -> prompt: Menekan Aktifkan notifikasi
+activate prompt
+prompt -> pengguna: Modal konfirmasi Izinkan atau Tolak
+
+alt Memilih Tolak atau menutup
+  prompt -> pengguna: Dialog ditutup
+  deactivate prompt
+else Memilih Izinkan
+  prompt -> prompt: handleEnable cek hasValidVapidPublicKey
+
+  alt VAPID tidak valid
+    prompt -> pengguna: message.error VAPID
+    deactivate prompt
+  else VAPID valid
+    prompt -> hook: subscribe
+    activate hook
+
+    alt Browser tidak mendukung Web Push
+      hook --> prompt: ok false error dukungan
+      deactivate hook
+      prompt -> pengguna: message.error
+      deactivate prompt
+    else Izin denied
+      hook --> prompt: ok false izin diblokir
+      deactivate hook
+      prompt -> pengguna: message.error
+      deactivate prompt
+    else Lanjut aktivasi
+      opt Izin masih default
+        hook -> browser: Notification.requestPermission
+        browser -> pengguna: Prompt izin sistem
+        pengguna -> browser: Izinkan atau tolak
+        browser --> hook: granted atau denied
+        alt Izin ditolak
+          hook --> prompt: ok false izin ditolak
+          deactivate hook
+          prompt -> pengguna: message.error
+          deactivate prompt
+        end
+      end
+
+      hook -> browser: register sw-push.js\npushManager.subscribe VAPID
+      activate browser
+      browser --> hook: PushSubscription endpoint keys
+      deactivate browser
+
+      hook -> storage: getOrCreateGuestPushKey
+      activate storage
+      storage --> hook: guestKey
+      deactivate storage
+
+      hook -> rute: POST endpoint keys guestKey\ncookie sesi jika login
+      activate rute
+      rute -> rute: getServerSession
+
+      opt userId dan guestKey
+        rute -> db: updateMany guestKey ke userId
+        activate db
+        deactivate db
+      end
+
+      rute -> db: deleteMany endpoint lama\nfindUnique create atau update
+      activate db
+      db --> rute: Langganan tersimpan
+      deactivate db
+
+      alt Respons gagal
+        rute --> hook: status 400 atau 500
+        deactivate rute
+        hook --> prompt: ok false error server
+        deactivate hook
+        prompt -> pengguna: message.error
+        deactivate prompt
+      else Respons sukses
+        rute --> hook: success true
+        deactivate rute
+        hook -> hook: setIsSubscribed true
+        hook --> prompt: ok true
+        deactivate hook
+        prompt -> pengguna: message.success Notifikasi push aktif
+        deactivate prompt
+
+        opt Login setelah aktivasi sebagai guest
+          note over hook, rute
+            useEffect memanggil subscribe lagi
+            dengan guestKey untuk mengaitkan ke akun
+          end note
+        end
+      end
+    end
+  end
+end
+
+@enduml

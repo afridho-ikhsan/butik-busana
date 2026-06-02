@@ -1,0 +1,73 @@
+@startuml skripsi_batalkan_pesanan_otomatis_sequence
+title Sequence Diagram — Batalkan Pesanan Kedaluwarsa (Otomatis)\nModul Transaksi, GET /api/cron/cancel-expired-orders
+
+skinparam SequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor "Sistem Cron\ncron-job.org" as cron
+actor Pelanggan as pengguna
+participant "RuteCancelExpiredOrders" as rute
+database "BasisData\nPrisma" as db
+participant "Web Push\nsendPushToUser" as push
+participant "Service Worker\nsw-push.js" as sw
+
+cron -> rute: GET /api/cron/cancel-expired-orders\nAuthorization Bearer CRON_SECRET
+activate rute
+
+alt Token tidak valid
+  rute --> cron: 401 Unauthorized
+  deactivate rute
+else Token valid
+  rute -> rute: deadline = now - PAYMENT_DEADLINE_MS
+
+  rute -> db: findMany NOT_PAID\nstatus bukan CANCELED\ncreatedAt lt deadline
+  activate db
+  db --> rute: Daftar pesanan kedaluwarsa
+  deactivate db
+
+  alt Tidak ada pesanan
+    rute --> cron: JSON canceled 0 pushSent 0
+    deactivate rute
+  else Ada satu atau lebih pesanan
+    loop Untuk setiap pesanan
+      rute -> db: update status CANCELED
+      activate db
+      db --> rute: Konfirmasi
+      deactivate db
+
+      rute -> db: count PushSubscription userId
+      activate db
+      db --> rute: subscriptionCount
+      deactivate db
+
+      alt subscriptionCount 0
+        rute -> rute: Lewati push lanjut pesanan berikutnya
+      else Ada langganan push
+        rute -> push: sendPushToUser\nbatas waktu pembayaran habis
+        activate push
+        push -> db: findFirst PushSubscription
+        activate db
+        db --> push: Endpoint keys
+        deactivate db
+
+        alt Pengiriman push berhasil
+          push -> push: webPush.sendNotification
+          push -> sw: Payload push
+          activate sw
+          sw -> pengguna: showNotification Pesanan Dibatalkan
+          deactivate sw
+          rute -> rute: pushSent increment
+        else Pengiriman push gagal
+          rute -> rute: Galat diabaikan
+        end
+        push --> rute: Selesai
+        deactivate push
+      end
+    end
+
+    rute --> cron: JSON canceled pushSent
+    deactivate rute
+  end
+end
+
+@enduml
