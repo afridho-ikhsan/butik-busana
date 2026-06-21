@@ -24,7 +24,7 @@ endif
 
 |RuteCancelExpiredOrders|
 if (Daftar pesanan kedaluwarsa kosong?) then (ya)
-  :Mengembalikan JSON\ncanceled 0 pushSent 0;
+  :Mengembalikan JSON\ncanceled 0;
   stop
 else (tidak)
 endif
@@ -32,29 +32,11 @@ endif
 repeat
   |BasisData|
   :Memperbarui status pesanan menjadi CANCELED;
-
-  |RuteCancelExpiredOrders|
-  :Menyusun URL detail transaksi\nberdasarkan slug pengguna;
-
-  |BasisData|
-  :Menghitung langganan push\nuntuk userId pemilik pesanan;
-
-  |RuteCancelExpiredOrders|
-  if (Pengguna punya langganan push?) then (tidak)
-    :Lewati pengiriman push\nlanjut pesanan berikutnya;
-  else (ya)
-    :Mengirim push Pesanan Dibatalkan\nkarena batas waktu pembayaran habis;
-    if (Pengiriman push berhasil?) then (ya)
-      :Menambah penghitung pushSent;
-    else (tidak)
-      :Abaikan galat push\nlanjut pesanan berikutnya;
-    endif
-  endif
-
 repeat while (Masih ada pesanan dalam daftar?) is (ya)
 ->tidak;
 
-:Mengembalikan JSON canceled dan pushSent;
+|RuteCancelExpiredOrders|
+:Mengembalikan JSON canceled;
 
 stop
 

@@ -22,11 +22,11 @@ const poppins = Poppins({
 
 export const metadata: Metadata = {
   title: {
-    default: "butik-busana.com jual aneka jam tangan branded, kacamata import, fashion, obat herbal murah harga terjangkau",
-    template: '%s - Butik Busana - Jual aneka jam tangan branded, kacamata import, fashion, obat herbal murah harga terjangkau'
+    default: "Butik Busana - Jual Busana & Pakaian Fashion Pria & Wanita Harga Terjangkau",
+    template: '%s - Butik Busana - Jual Busana & Pakaian Fashion Pria & Wanita Harga Terjangkau'
   },
-  description: "Butik Busana menawarkan aneka jam tangan import, fashion, hingga kacamata kwalitas terbaik dengan harga terjangkau, segera temukan produk original dan terjamin kualitasnya.",
-  keywords: "ecommerce, jam tangan, arloji, kacamata, rayban, tag heuer, gucci, fashion, baju, ponsel, butik, celana, elektronik, online shop, belanja online",
+  description: "Butik Busana menawarkan koleksi busana fashion pria dan wanita kualitas terbaik dengan harga terjangkau. Temukan produk pakaian original, modis, dan terjamin kualitasnya.",
+  keywords: "ecommerce, fashion, baju, butik, celana, pakaian pria, pakaian wanita, baju modis, online shop, belanja online, busana fashion",
   twitter: {
     card: 'summary_large_image'
   },
@@ -38,7 +38,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="scrollbar">
+    <html lang="id" className="scrollbar">
       <head>
         <meta name="google-site-verification" content="6XOUWyXTI8z3zIJN79DBa2rIutzE018fkzxAstiGCjw" />
         <link rel="manifest" href="/manifest.json" />

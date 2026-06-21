@@ -1,5 +1,5 @@
 @startuml skripsi_terima_notifikasi_deadline_pembayaran_activity
-title Activity Diagram — Terima Notifikasi Pengingat Deadline Pembayaran\nModul Notifikasi PWA, GET /api/cron/payment-deadline-reminder
+title Activity Diagram — Terima Notifikasi Pengingat Deadline Pembayaran\nModul Notifikasi PWA
 
 skinparam ActivityFontSize 12
 skinparam TitleFontSize 14
@@ -10,7 +10,7 @@ start
 
 :Rute GET /api/cron/payment-deadline-reminder\nheader Authorization Bearer CRON_SECRET;
 
-|RutePaymentDeadlineReminder|
+|Server|
 if (CRON_SECRET diatur dan token tidak valid?) then (ya)
   :Mengembalikan respons 401 Unauthorized;
   stop
@@ -30,7 +30,7 @@ repeat
     |BasisData|
     :Mencari pesanan NOT_PAID\nstatus bukan CANCELED\nbelum pernah dikirim field sentAt ambang ini;
 
-    |RutePaymentDeadlineReminder|
+    |Server|
     if (Tidak ada pesanan cocok?) then (ya)
       :Lanjut ambang menit berikutnya;
     else (ada)
@@ -38,19 +38,34 @@ repeat
         :Menyusun URL detail transaksi pesanan;
 
         |BasisData|
-        :Menghitung langganan push userId pemilik pesanan;
+        :Menghitung jumlah langganan push\nmilik userId pemilik pesanan;
 
-        |RutePaymentDeadlineReminder|
+        |Server|
         if (Tidak ada langganan push?) then (ya)
           :Catat pushFailedNoSubscription\nlanjut pesanan berikutnya;
-        else (ya)
-          :sendPushToUser judul Pembayaran X menit lagi habis\nisi pesanan akan dibatalkan;
-          if (Pengiriman push berhasil?) then (ya)
+        else (ada)
+          |BasisData|
+          :Mengambil data subscription terakhir\nendpoint p256dh auth;
+
+          |Server|
+          :Memanggil webPush.sendNotification\ndengan endpoint dan payload notifikasi;
+
+          |Push Service|
+          if (Endpoint langganan masih valid?) then (tidak, 410/404)
+            |BasisData|
+            :Menghapus subscription kadaluarsa;
+
+            |Server|
+            :Catat push gagal\nlanjut pesanan berikutnya;
+          else (ya)
+            :Meneruskan notifikasi ke perangkat pelanggan;
+
+            |Server|
             |BasisData|
             :Menandai paymentDeadlineReminderSentAt\nuntuk ambang menit tersebut;
+
+            |Server|
             :Menambah penghitung sent;
-          else (tidak)
-            :Catat push gagal\nlanjut pesanan berikutnya;
           endif
         endif
       repeat while (Masih ada pesanan dalam daftar?) is (ya)
@@ -63,15 +78,8 @@ repeat while (Masih ada ambang menit pengingat?) is (ya)
 
 :Mengembalikan JSON sent matched pushFailed total;
 
-|Server Push|
-if (Langganan push ada di perangkat pelanggan?) then (tidak)
-  stop
-else (ya)
-  :web-push mengirim payload ke endpoint;
-endif
-
 |Service Worker PWA|
-:event push diterima sw-push.js;
+:event push diterima sw-push.js\n(dipicu oleh Push Service);
 :showNotification judul dan isi\nrequireInteraction true;
 
 |Pelanggan|

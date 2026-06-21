@@ -130,12 +130,12 @@ function Slider({ slides = [], durationSeconds = DEFAULT_DURATION }: { slides?: 
               >
                 <Image
                   src={slide.imageUrl}
-                  alt=""
+                  alt={`Banner Promo ${slide.id}`}
                   fill
                   draggable={false}
                   className="object-contain"
                   sizes="(max-width: 768px) 90vw, 80vw"
-                  unoptimized={isExternalUrl(slide.imageUrl)}
+                  priority={items.indexOf(slide) === 0}
                 />
               </div>
             </div>
@@ -147,6 +147,7 @@ function Slider({ slides = [], durationSeconds = DEFAULT_DURATION }: { slides?: 
               key={slide.id}
               className="block w-full"
               draggable={false}
+              aria-label={`Banner Promo ${slide.id}`}
             >
               {content}
             </Link>

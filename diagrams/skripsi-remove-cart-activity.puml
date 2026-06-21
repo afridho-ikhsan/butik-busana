@@ -15,27 +15,22 @@ else (tombol kurangi)
 endif
 
 |Client|
-if (Pelanggan sudah masuk akun?) then (ya)
-  :Mengirim permintaan hapus baris\nmengacu pada pengenal item;
-  |Server|
-  :Memverifikasi bahwa sesi pengguna aktif;
-  if (Sesi tidak valid?) then (ya)
-    :Menolak permintaan\ndengan pesan perlu masuk akun;
-    |Client|
-    :Menampilkan pesan kesalahan kepada pengguna;
-    stop
-  endif
-  |Database|
-  :Mengambil keranjang milik pengguna;
-  |Server|
-  :Menyaring daftar baris\nmenghapus baris yang dipilih;
-  :Menyimpan keranjang yang diperbarui;
+:Mengirim permintaan hapus baris\nmengacu pada pengenal item;
+|Server|
+:Memverifikasi bahwa sesi pengguna aktif;
+if (Sesi tidak valid?) then (ya)
+  :Menolak permintaan\ndengan pesan perlu masuk akun;
   |Client|
-  :Menyegarkan tampilan keranjang;
-else (tidak)
-  :Menghapus baris dari keranjang tamu\npada penyimpanan peramban;
-  :Menyegarkan tampilan keranjang;
+  :Menampilkan pesan kesalahan kepada pengguna;
+  stop
 endif
+|Database|
+:Mengambil keranjang milik pengguna;
+|Server|
+:Menyaring daftar baris\nmenghapus baris yang dipilih;
+:Menyimpan keranjang yang diperbarui;
+|Client|
+:Menyegarkan tampilan keranjang;
 
 stop
 

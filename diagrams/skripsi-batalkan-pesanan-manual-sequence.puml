@@ -3,78 +3,51 @@ title Sequence Diagram — Batalkan Pesanan (Manual)\nModul Transaksi, CancelOrd
 
 skinparam SequenceMessageAlign center
 skinparam responseMessageBelowArrow true
+skinparam ParticipantPadding 15
+skinparam BoxPadding 15
+skinparam DefaultFontSize 15
+skinparam ArrowFontSize 13
+skinparam ParticipantFontSize 15
 
 actor Pelanggan as pengguna
-participant "DaftarTransaksi" as daftar
-participant "CancelOrderButton" as tombol
-participant "cancelOrder\nServer Action" as action
-database "BasisData\nPrisma" as db
-participant "Web Push\nsendPushToUser" as push
+participant "Aplikasi Butik Busana\n(Klien)" as klien
+participant "Server Next.js\n(Aksi & API)" as server
+database "BasisData\n(Prisma)" as db
 
-pengguna -> daftar: Membuka halaman daftar transaksi
-activate daftar
-daftar -> pengguna: Menampilkan tombol Batalkan\npada pesanan belum bayar
-deactivate daftar
+pengguna -> klien: Membuka daftar transaksi & menekan "Batalkan"
+activate klien
+klien -> pengguna: Menampilkan konfirmasi pembatalan
 
-pengguna -> tombol: Menekan Batalkan
-activate tombol
-tombol -> pengguna: Modal konfirmasi\nnomor pesanan
+alt Memilih Batal/Tutup
+  klien -> pengguna: Dialog ditutup
+else Memilih Konfirmasi Batalkan
+  klien -> server: cancelOrder(orderId)
+  activate server
 
-alt Memilih Tutup atau menutup dialog
-  tombol -> pengguna: Dialog ditutup
-  deactivate tombol
-else Memilih Batalkan pada dialog
-  tombol -> action: cancelOrder orderId
-  activate action
-
-  action -> db: findUnique order\ninclude user slug
+  server -> db: findUnique order
   activate db
-  db --> action: Data pesanan
+  db --> server: Data pesanan
   deactivate db
 
-  alt Pesanan tidak ditemukan
-    action --> tombol: success false
-    deactivate action
-    tombol -> pengguna: message.error gagal membatalkan
-    deactivate tombol
+  alt Pesanan tidak ditemukan / paymentStatus bukan NOT_PAID
+    server --> klien: success false
+    klien -> pengguna: Tampilkan pesan galat pembatalan
   else Status sudah CANCELED
-    action --> tombol: success true
-    deactivate action
-    tombol -> pengguna: message.success berhasil dibatalkan
-    tombol -> tombol: router.refresh
-    tombol -> pengguna: Daftar transaksi diperbarui
-    deactivate tombol
-  else paymentStatus bukan NOT_PAID
-    action --> tombol: success false
-    deactivate action
-    tombol -> pengguna: message.error gagal membatalkan
-    deactivate tombol
+    server --> klien: success true
+    klien -> pengguna: Tampilkan pesan berhasil & muat ulang daftar
   else Pesanan belum bayar dapat dibatalkan
-    action -> db: update status CANCELED
+    server -> db: update status CANCELED
     activate db
-    db --> action: Konfirmasi update
+    db --> server: Konfirmasi update
     deactivate db
 
-    action -> push: sendPushToUser\nPesanan Dibatalkan
-    activate push
-    push -> db: findFirst PushSubscription userId
-    activate db
-    db --> push: Langganan atau kosong
-    deactivate db
-    opt Ada langganan push
-      push -> push: webPush.sendNotification
-      push --> pengguna: Notifikasi push perangkat
-    end
-    push --> action: Selesai atau galat diabaikan
-    deactivate push
-
-    action --> tombol: success true
-    deactivate action
-    tombol -> pengguna: message.success berhasil dibatalkan
-    tombol -> tombol: router.refresh
-    tombol -> pengguna: Status pesanan tampil Dibatalkan
-    deactivate tombol
+    server --> klien: success true
+    deactivate server
+    klien -> klien: router.refresh (Muat ulang data)
+    klien -> pengguna: Status pesanan terupdate "Dibatalkan"
   end
 end
+
+deactivate klien
 
 @enduml

@@ -1,174 +1,137 @@
-// ERD — Domain use case skripsi Butik Busana Fashion (PWA)
-// Paste ke https://dbdiagram.io/d
-// Sumber: diagrams/skripsi-class-diagram-usecases.puml + prisma/schema.prisma
+@startuml
+title Class Diagram Sistem E-Commerce Butik Busana Fashion (PWA)
 
-Project butik_busana_skripsi {
-  database_type: 'MongoDB'
-  Note: '''
-    Basis data MongoDB (Prisma).
-    Keranjang tamu disimpan di localStorage, bukan tabel Cart.
-    Product.collectionIds mereferensi Collection tanpa FK formal.
-    RekeningBank dipakai referensi UI transfer manual.
-    Midtrans dan Sistem Cron layanan eksternal, bukan entitas DB.
-  '''
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+hide circle
+
+class Role {
+  # id : String
+  # name : String
 }
 
-Enum payment_status {
-  NOT_PAID
-  PAID
+class User {
+  # id : String
+  # email : String
+  # password : String
+  # nickname : String
+  # slug : String
+  # profilePhoto : String
+  # phones : String[]
+  # addresses : Json[]
+  # roleId : String
+  + register()
+  + login()
+  + logout()
+  + getMe()
 }
 
-// --- Otentikasi ---
-
-Table Role {
-  _id varchar [pk, note: 'ObjectId']
-  name varchar [unique, not null]
-  created_at datetime [default: `now()`]
-  updated_at datetime
+class Collection {
+  # id : String
+  # name : String
+  # slug : String
+  # imageUrl : String
+  # numberOfProducts : Int
+  + getCollections()
+  + getCollectionBySlug()
 }
 
-Table User {
-  _id varchar [pk, note: 'ObjectId']
-  email varchar [unique, not null]
-  password varchar [not null]
-  nickname varchar
-  slug varchar [unique, not null]
-  profile_photo varchar
-  phones json [note: 'String[]']
-  addresses json [note: 'Json[] alamat']
-  role_id varchar [note: 'ObjectId, nullable']
-  created_at datetime [default: `now()`]
-  updated_at datetime
+class Product {
+  # id : String
+  # name : String
+  # slug : String
+  # price : Float
+  # discountedPrice : Float
+  # quantity : Int
+  # weight : Float
+  # media : Json[]
+  # variants : Json[]
+  # collectionIds : String[]
+  + getProducts()
+  + getProductBySlug()
 }
 
-// --- Katalog Produk ---
-
-Table Collection {
-  _id varchar [pk, note: 'ObjectId']
-  name varchar [not null]
-  slug varchar [unique, not null]
-  image_url varchar
-  number_of_products int [default: 0]
-  created_at datetime [default: `now()`]
-  updated_at datetime
+class Cart {
+  # id : String
+  # userId : String
+  # lineItems : Json[]
+  + getCart()
+  + addItem()
+  + removeItem()
+  + updateQuantity()
+  + deleteCart()
 }
 
-Table Product {
-  _id varchar [pk, note: 'ObjectId']
-  name varchar [not null]
-  slug varchar [unique, not null]
-  price float [not null]
-  discounted_price float [default: 0]
-  quantity int [default: 0]
-  weight float [default: 0]
-  media json [note: 'Json[] gambar produk']
-  variants json [note: 'Json[] varian']
-  collection_ids json [note: 'String[] referensi Collection._id']
-  created_at datetime [default: `now()`]
-  updated_at datetime
+class LineItemKeranjang {
+  # productId : String
+  # variantId : String
+  # quantity : Int
+  # price : Float
+  # productName : String
+  # image : String
 }
 
-// --- Keranjang Belanja ---
-
-Table Cart {
-  _id varchar [pk, note: 'ObjectId']
-  user_id varchar [unique, not null, note: 'ObjectId, satu cart per user login']
-  line_items json [not null, note: 'LineItemKeranjang[]: productId, variantId, quantity, price, productName, image']
-  created_at datetime [default: `now()`]
-  updated_at datetime
+class Order {
+  # id : String
+  # orderNumber : String
+  # userId : String
+  # status : String
+  # paymentStatus : String
+  # lineItems : Json[]
+  # subtotal : Float
+  # shippingCost : Float
+  # total : Float
+  # recipientName : String
+  # recipientPhone : String
+  # address : String
+  # layananKurir : String
+  # catatan : String
+  # metodePembayaran : String
+  # paymentDeadlineReminder30SentAt : DateTime
+  # paymentDeadlineReminder15SentAt : DateTime
+  # paymentDeadlineReminder5SentAt : DateTime
+  + getOrders()
+  + getOrder()
+  + createOrder()
+  + orderTokenizer()
+  + cancelOrder()
+  + getOngkir()
 }
 
-// --- Transaksi ---
-
-Table Order {
-  _id varchar [pk, note: 'ObjectId']
-  order_number varchar [unique, not null]
-  user_id varchar [not null, note: 'ObjectId, termasuk akun guest sistem']
-  status varchar [not null, default: 'APPROVED', note: 'APPROVED | CANCELED']
-  payment_status payment_status [not null, default: 'NOT_PAID']
-  line_items json [not null, note: 'Json[] item pesanan']
-  subtotal float [not null]
-  shipping_cost float [not null]
-  total float [not null]
-  recipient_name varchar
-  recipient_phone varchar
-  address varchar [not null]
-  layanan_kurir varchar
-  catatan varchar
-  metode_pembayaran varchar [note: 'VA, QRIS, e-wallet, bank_transfer, dll']
-  payment_deadline_reminder_30_sent_at datetime
-  payment_deadline_reminder_15_sent_at datetime
-  payment_deadline_reminder_5_sent_at datetime
-  created_at datetime [default: `now()`]
-  updated_at datetime
+class PushSubscription {
+  # id : String
+  # userId : String
+  # guestKey : String
+  # endpoint : String
+  # p256dh : String
+  # auth : String
+  # userAgent : String
+  + subscribe()
+  + unsubscribe()
+  + sendPushToUser()
+  + sendPushToGuestKey()
 }
 
-Table PaymentEvidence {
-  _id varchar [pk, note: 'ObjectId']
-  order_id varchar [not null, note: 'ObjectId']
-  order_number varchar [not null]
-  link_bukti_pembayaran varchar [not null, note: 'URL Cloudinary atau invoice Midtrans']
-  nama_foto varchar [not null]
-  created_at datetime [default: `now()`]
+class Midtrans {
+  + createTransactionToken()
+  + kirimNotifikasiWebhook()
 }
 
-Table RekeningBank {
-  _id varchar [pk, note: 'ObjectId']
-  nama_penerima varchar [not null]
-  jenis_bank varchar [not null]
-  nomor_rekening varchar [not null]
-  gambar_bank varchar
-  created_at datetime [default: `now()`]
-  updated_at datetime
+class SistemCron {
+  + paymentDeadlineReminder()
+  + cancelExpiredOrders()
 }
 
-// --- Notifikasi PWA ---
+User "*" -- "1" Role
+User "1" -- "0..1" Cart
+User "1" -- "0..*" Order
+User "1" -- "0..1" PushSubscription
+Cart "1" *-- "0..*" LineItemKeranjang
+Product ..> Collection
+LineItemKeranjang ..> Product
+Order ..> Product
+Midtrans ..> Order
+SistemCron ..> Order
+SistemCron ..> PushSubscription
 
-Table PushSubscription {
-  _id varchar [pk, note: 'ObjectId']
-  user_id varchar [note: 'ObjectId, nullable jika tamu']
-  guest_key varchar [note: 'UUID localStorage saat belum login']
-  endpoint varchar [unique, not null]
-  p256dh varchar [not null]
-  auth varchar [not null]
-  user_agent varchar
-  created_at datetime [default: `now()`]
-}
-
-// --- Relasi ---
-
-Ref: User.role_id > Role._id
-
-Ref: Cart.user_id - User._id
-
-Ref: Order.user_id > User._id
-
-Ref: PaymentEvidence.order_id > Order._id [delete: cascade]
-
-Ref: PushSubscription.user_id > User._id
-
-// Relasi logis (bukan FK di MongoDB)
-
-TableGroup otentikasi {
-  Role
-  User
-}
-
-TableGroup katalog_produk {
-  Collection
-  Product
-}
-
-TableGroup keranjang {
-  Cart
-}
-
-TableGroup transaksi {
-  Order
-  PaymentEvidence
-  RekeningBank
-}
-
-TableGroup notifikasi_pwa {
-  PushSubscription
-}
+@enduml

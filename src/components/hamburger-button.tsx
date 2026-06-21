@@ -37,6 +37,7 @@ function HamburgerButton() {
       <button
         className={`transition-all space-y-1 w-6 aspect-square relative lg:hidden`}
         onClick={handleToggle}
+        aria-label="Buka menu navigasi"
       >
         <div
           className={`transition-all h-1 w-full rounded-full bg-slate-700 ${

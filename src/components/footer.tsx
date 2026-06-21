@@ -24,7 +24,7 @@ const links = [
 function Footer() {
   return (
     <div className="flex flex-col relative">
-      <ul className="flex px-2 gap-3 justify-center items-center flex-wrap bg-blue-500 py-5 !mb-0">
+      <ul className="flex px-2 gap-3 justify-center items-center flex-wrap bg-blue-900 py-5 !mb-0">
         {links.map(link => <Link key={link.label} href={link.href} className="flex gap-1 items-center justify-center text-slate-50">
           <link.icon />
           {link.label}

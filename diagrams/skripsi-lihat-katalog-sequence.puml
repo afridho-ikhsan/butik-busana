@@ -3,64 +3,49 @@ title Sequence Diagram — Lihat Katalog Produk\nPelanggan, halaman daftar produ
 
 skinparam SequenceMessageAlign center
 skinparam responseMessageBelowArrow true
+skinparam ParticipantPadding 15
+skinparam BoxPadding 15
+skinparam DefaultFontSize 15
+skinparam ArrowFontSize 13
+skinparam ParticipantFontSize 15
 
 actor Pelanggan as pengguna
-participant "KerangkaHalamanProduk\nNext.js server" as shell
-participant "KomponenKatalogKlien" as catalog
-participant "RuteApiProduk" as api
-database "BasisData" as db
-participant "PenyimpananLokal\nperamban" as storage
+participant "Aplikasi Butik Busana\n(Klien)" as klien
+participant "Server Next.js\n(Aksi & API)" as server
+database "BasisData\n(Prisma)" as db
 
-pengguna -> shell: Membuka halaman daftar produk
-activate shell
-shell -> pengguna: Menyampaikan kerangka filter\nbanner dan area katalog
-shell -> catalog: Meneruskan parameter pencarian\nawal dari URL
-deactivate shell
-activate catalog
+pengguna -> klien: Membuka halaman daftar produk
+activate klien
 
-catalog -> catalog: Menyelaraskan parameter dari alamat\natau dari filter dan pencarian
-catalog -> catalog: Membentuk permintaan GET\n/api/products terfilter
+klien -> klien: Menyelaraskan parameter dari alamat\natau dari filter dan pencarian
+klien -> klien: Membentuk permintaan GET /api/products terfilter
 
-note over catalog, storage
-Service worker dapat mengembalikan salinan\nGET /api/products saat jaringan tidak stabil
-end note
+klien -> server: Meminta daftar produk (GET /api/products)
+activate server
 
-catalog -> api: Meminta daftar produk
-activate api
-
-api -> db: Mengambil produk aktif\nsesuai harga koleksi urutan
+server -> db: Mengambil produk aktif\nsesuai harga koleksi urutan
 activate db
 
 opt Penyaringan menurut slug koleksi
-  api -> db: Mencari koleksi\nlalu menyaring produk
+  server -> db: Mencari koleksi\nlalu menyaring produk
 end
 
-db --> api: Daftar rekaman produk
+db --> server: Daftar rekaman produk
 deactivate db
 
-api -> api: Penyesuaian nama cari\nbeberapa kata jika ada
+server -> server: Penyesuaian nama cari\nbeberapa kata jika ada
 
-api --> catalog: Badan JSON daftar produk
-deactivate api
+server --> klien: Badan JSON daftar produk
+deactivate server
 
-alt Respons valid dan berisi produk
-  catalog -> storage: Menyimpan salinan untuk URL permintaan\nini pada perangkat
-  catalog -> pengguna: Menampilkan kartu produk\ndan tautan detail
-else Respons valid namun daftar kosong
-  catalog -> storage: Menyimpan salinan kosong\nuntuk URL ini
-  catalog -> pengguna: Menampilkan area tanpa item
-else Respons gagal atau tidak dipakai
-  catalog -> storage: Membaca salinan tersimpan\nuntuk URL ini
-  activate storage
-  storage --> catalog: Snapshot atau tidak ada
-  deactivate storage
-  alt Snapshot berisi produk
-    catalog -> pengguna: Menampilkan daftar dari salinan lokal
-  else Tidak ada snapshot memadai
-    catalog -> pengguna: Pesan butuh sambungan\nuntuk mengunduh katalog
-  end
+alt Respons sukses dan berisi produk
+  klien -> pengguna: Menampilkan kartu produk\ndan tautan detail
+else Respons sukses namun daftar kosong
+  klien -> pengguna: Menampilkan area tanpa item
+else Respons gagal / kesalahan jaringan
+  klien -> pengguna: Menampilkan pesan kesalahan jaringan
 end
 
-deactivate catalog
+deactivate klien
 
 @enduml

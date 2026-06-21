@@ -3,65 +3,58 @@ title Sequence Diagram — Pendaftaran\nPelanggan, halaman daftar
 
 skinparam SequenceMessageAlign center
 skinparam responseMessageBelowArrow true
+skinparam ParticipantPadding 15
+skinparam BoxPadding 15
+skinparam DefaultFontSize 15
+skinparam ArrowFontSize 13
+skinparam ParticipantFontSize 15
 
 actor Pelanggan as pengguna
-participant "HalamanDaftar" as ui
-participant "LayananAuth\nPOST /api/auth/register" as svc
-participant "RutePendaftaran" as route
-database "BasisData" as db
+participant "Aplikasi Butik Busana\n(Klien)" as klien
+participant "Server Next.js\n(Aksi & API)" as server
+database "BasisData\n(Prisma)" as db
 
-pengguna -> ui: Mengisi nama email kata sandi\nmenekan Daftar
-activate ui
+pengguna -> klien: Mengisi nama, email, kata sandi, lalu menekan "Daftar"
+activate klien
 
-ui -> svc: Meminta pendaftaran\nmengirim data formulir
-activate svc
+klien -> server: POST /api/auth/register (Kirim data pendaftaran)
+activate server
 
-svc -> route: Permintaan HTTP POST\nbadan JSON pendaftaran
-activate route
+server -> server: Memeriksa format email & panjang sandi
 
-route -> route: Memeriksa format email\npanjang sandi isian wajib
-
-alt Format atau isian tidak memenuhi syarat
-  route --> svc: Respons galat validasi
-  deactivate route
-  svc --> ui: Permintaan ditolak status 400
-  deactivate svc
-  ui -> pengguna: Notifikasi galat pendaftaran
-else Lanjut pemeriksaan keunikan email
-  route -> db: Mencari pengguna\nberdasarkan email
+alt Validasi format gagal
+  server --> klien: Respons galat validasi (status 400)
+  klien -> pengguna: Menampilkan notifikasi galat data formulir
+else Validasi format lolos
+  server -> db: Query user berdasarkan email
   activate db
-  db --> route: Rekaman atau kosong
+  db --> server: Data rekaman (ada/tidak ada)
   deactivate db
 
-  alt Email sudah terdaftar
-    route --> svc: Respons email sudah terdaftar
-    deactivate route
-    svc --> ui: Permintaan ditolak status 400
-    deactivate svc
-    ui -> pengguna: Notifikasi email sudah dipakai
-  else Email belum dipakai
-    route -> db: Mengambil peran pelanggan
+  alt Email sudah digunakan
+    server --> klien: Respons email sudah terdaftar (status 400)
+    klien -> pengguna: Menampilkan notifikasi email sudah digunakan
+  else Email tersedia
+    server -> db: Query peran default pelanggan
     activate db
-    db --> route: Identifier peran
+    db --> server: Data peran pelanggan
     deactivate db
 
-    route -> route: Mengolah kata sandi\nagar aman disimpan
+    server -> server: Meng-hash kata sandi
 
-    route -> db: Menyimpan pengguna baru
+    server -> db: Menyimpan pengguna baru ke database
     activate db
-    db --> route: Konfirmasi penyimpanan
+    db --> server: Konfirmasi penyimpanan sukses
     deactivate db
 
-    route --> svc: Respons profil ringkas\nemail nama slug
-    deactivate route
-    svc --> ui: Balasan sukses
-    deactivate svc
-    ui -> pengguna: Notifikasi berhasil daftar\nsilakan masuk
-    ui -> ui: Navigasi ke halaman login
-    ui -> pengguna: Formulir masuk tampil
+    server --> klien: Respons profil ringkas sukses
+    deactivate server
+
+    klien -> pengguna: Menampilkan notifikasi berhasil daftar
+    klien -> klien: Navigasi ke halaman login
   end
 end
 
-deactivate ui
+deactivate klien
 
 @enduml

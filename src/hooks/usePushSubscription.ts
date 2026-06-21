@@ -137,7 +137,7 @@ export function usePushSubscription() {
             guestKey,
           }),
         });
-      } catch {}
+      } catch { }
     };
 
     linkGuestPushToAccount();

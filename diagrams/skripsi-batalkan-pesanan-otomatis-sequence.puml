@@ -3,70 +3,43 @@ title Sequence Diagram — Batalkan Pesanan Kedaluwarsa (Otomatis)\nModul Transa
 
 skinparam SequenceMessageAlign center
 skinparam responseMessageBelowArrow true
+skinparam ParticipantPadding 15
+skinparam BoxPadding 15
+skinparam DefaultFontSize 15
+skinparam ArrowFontSize 13
+skinparam ParticipantFontSize 15
 
 actor "Sistem Cron\ncron-job.org" as cron
-actor Pelanggan as pengguna
-participant "RuteCancelExpiredOrders" as rute
-database "BasisData\nPrisma" as db
-participant "Web Push\nsendPushToUser" as push
-participant "Service Worker\nsw-push.js" as sw
+participant "Server Next.js\n(Aksi & API)" as server
+database "BasisData\n(Prisma)" as db
 
-cron -> rute: GET /api/cron/cancel-expired-orders\nAuthorization Bearer CRON_SECRET
-activate rute
+cron -> server: GET /api/cron/cancel-expired-orders\nAuthorization Bearer CRON_SECRET
+activate server
 
 alt Token tidak valid
-  rute --> cron: 401 Unauthorized
-  deactivate rute
+  server --> cron: 401 Unauthorized
+  deactivate server
 else Token valid
-  rute -> rute: deadline = now - PAYMENT_DEADLINE_MS
+  server -> server: deadline = now - PAYMENT_DEADLINE_MS
 
-  rute -> db: findMany NOT_PAID\nstatus bukan CANCELED\ncreatedAt lt deadline
+  server -> db: findMany NOT_PAID\nstatus bukan CANCELED\ncreatedAt lt deadline
   activate db
-  db --> rute: Daftar pesanan kedaluwarsa
+  db --> server: Daftar pesanan kedaluwarsa
   deactivate db
 
   alt Tidak ada pesanan
-    rute --> cron: JSON canceled 0 pushSent 0
-    deactivate rute
+    server --> cron: JSON canceled 0
+    deactivate server
   else Ada satu atau lebih pesanan
     loop Untuk setiap pesanan
-      rute -> db: update status CANCELED
+      server -> db: update status CANCELED
       activate db
-      db --> rute: Konfirmasi
+      db --> server: Konfirmasi
       deactivate db
-
-      rute -> db: count PushSubscription userId
-      activate db
-      db --> rute: subscriptionCount
-      deactivate db
-
-      alt subscriptionCount 0
-        rute -> rute: Lewati push lanjut pesanan berikutnya
-      else Ada langganan push
-        rute -> push: sendPushToUser\nbatas waktu pembayaran habis
-        activate push
-        push -> db: findFirst PushSubscription
-        activate db
-        db --> push: Endpoint keys
-        deactivate db
-
-        alt Pengiriman push berhasil
-          push -> push: webPush.sendNotification
-          push -> sw: Payload push
-          activate sw
-          sw -> pengguna: showNotification Pesanan Dibatalkan
-          deactivate sw
-          rute -> rute: pushSent increment
-        else Pengiriman push gagal
-          rute -> rute: Galat diabaikan
-        end
-        push --> rute: Selesai
-        deactivate push
-      end
     end
 
-    rute --> cron: JSON canceled pushSent
-    deactivate rute
+    server --> cron: JSON canceled
+    deactivate server
   end
 end
 

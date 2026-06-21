@@ -3,73 +3,50 @@ title Sequence Diagram — Hapus Produk dari Keranjang\nPelanggan, tampilan kera
 
 skinparam SequenceMessageAlign center
 skinparam responseMessageBelowArrow true
+skinparam ParticipantPadding 15
+skinparam BoxPadding 15
+skinparam DefaultFontSize 15
+skinparam ArrowFontSize 13
+skinparam ParticipantFontSize 15
 
 actor Pelanggan as pengguna
-participant "BarisItemKeranjang" as rowUi
-participant "LayananApiKeranjang\naxios DELETE /api/cart" as cartApi
-participant "RuteApiKeranjang" as route
-participant "BasisData" as db
-participant "ModulKeranjangTamu\nlocalStorage" as guest
+participant "Aplikasi Butik Busana\n(Klien)" as klien
+participant "Server Next.js\n(Aksi & API)" as server
+database "BasisData\n(Prisma)" as db
 
-pengguna -> rowUi: Menekan hapus pada baris\natau mengecilkan kuantitas\nhingga satu lalu kurangi lagi
-activate rowUi
+pengguna -> klien: Menekan hapus pada baris produk
+activate klien
 
-rowUi -> rowUi: Mengambil pengenal baris\n_id pada entri keranjang
+klien -> klien: Mengambil pengenal baris (itemId)
 
-alt Pengguna sedang masuk akun
-  rowUi -> cartApi: Meminta hapus baris\npada parameter itemId
-  activate cartApi
+klien -> server: DELETE /api/cart?itemId=... (Kirim request hapus)
+activate server
 
-  cartApi -> route: DELETE dengan kuki sesi\nquery itemId
-  activate route
+server -> server: Memeriksa sesi pengguna aktif
 
-  route -> route: Memeriksa sesi pengguna aktif
+alt Sesi tidak sah atau kosong
+  server --> klien: Respons perlu login
+  klien -> pengguna: Tampilkan pesan galat dari server
+else Sesi sah
+  server -> db: Membaca keranjang milik pengguna
+  activate db
+  db --> server: Daftar baris keranjang
+  deactivate db
 
-  alt Sesi tidak sah atau kosong
-    route --> cartApi: Respons perlu login
-    deactivate route
-    cartApi --> rowUi: Permintaan ditolak
-    deactivate cartApi
-    rowUi -> pengguna: Pesan galat dari server
-  else Sesi sah
-    route -> db: Membaca keranjang milik pengguna
-    activate db
-    db --> route: Daftar baris
-    deactivate db
+  server -> server: Menyaring baris & menghapus baris terpilih
 
-    route -> route: Menyaring baris\nyang pengenalnya sama dengan itemId
+  server -> db: Menyimpan keranjang terbaru tanpa baris itu
+  activate db
+  db --> server: Tersimpan
+  deactivate db
 
-    route -> db: Menyimpan keranjang tanpa baris itu
-    activate db
-    db --> route: Tersimpan
-    deactivate db
+  server --> klien: Keranjang terbaru & subtotal
+  deactivate server
 
-    route --> cartApi: Keranjang terbaru dan subtotal
-    deactivate route
-    cartApi --> rowUi: Data untuk penyegaran cache
-    deactivate cartApi
-
-    rowUi -> rowUi: Menyegarkan daftar keranjang
-
-    rowUi -> pengguna: Daftar keranjang diperbarui
-  end
-
-else Pengguna tamu tidak bersesi
-  rowUi -> guest: Meminta hapus baris\ndan penyimpanan di perangkat
-  activate guest
-
-  guest -> guest: Memuat snapshot keranjang tamu\nmenyaring baris yang _id cocok
-
-  guest -> guest: Menulis JSON ke localStorage\nmemancarkan peristiwa pembaruan
-
-  guest --> rowUi: Keranjang tamu tanpa baris itu
-  deactivate guest
-
-  rowUi -> rowUi: Memperbarui state komponen
-
-  rowUi -> pengguna: Daftar keranjang diperbarui
+  klien -> klien: Menyegarkan tampilan daftar keranjang
+  klien -> pengguna: Daftar keranjang diperbarui di layar
 end
 
-deactivate rowUi
+deactivate klien
 
 @enduml

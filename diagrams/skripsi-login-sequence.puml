@@ -3,45 +3,42 @@ title Sequence Diagram — Login\nPelanggan, halaman login
 
 skinparam SequenceMessageAlign center
 skinparam responseMessageBelowArrow true
+skinparam ParticipantPadding 15
+skinparam BoxPadding 15
+skinparam DefaultFontSize 15
+skinparam ArrowFontSize 13
+skinparam ParticipantFontSize 15
 
 actor Pelanggan as pengguna
-participant "HalamanLogin" as ui
-participant "SesiNextAuth\nsignIn klien" as authCli
-participant "AlurKredensial\nNextAuth server" as authSrv
-database "BasisData" as db
+participant "Aplikasi Butik Busana\n(Klien)" as klien
+participant "Server Next.js\n(Aksi & API)" as server
+database "BasisData\n(Prisma)" as db
 
-pengguna -> ui: Mengisi email dan kata sandi\nmenekan tombol Masuk
-activate ui
+pengguna -> klien: Mengisi email & kata sandi, lalu menekan "Masuk"
+activate klien
 
-ui -> authCli: login memanggil signIn\ndengan redirect nonaktif
-activate authCli
+klien -> server: signIn("credentials", { email, password }) (Kirim kredensial)
+activate server
 
-authCli -> authSrv: Mengirim email dan kata sandi\nuntuk pemeriksaan
-activate authSrv
-
-authSrv -> db: Mengambil rekaman pengguna\nsesuai email
+server -> db: Query user berdasarkan email
 activate db
-db --> authSrv: Data pengguna atau tidak ada
+db --> server: Data pengguna (email, password hash)
 deactivate db
 
-alt Kredensial ditolak
-  authSrv -> authSrv: Tidak ada kecocokan pengguna\natau kata sandi
-  authSrv --> authCli: Jawaban galat otentikasi
-  deactivate authSrv
-  authCli --> ui: signIn mengembalikan error
-  deactivate authCli
-  ui -> pengguna: Notifikasi email atau password salah
-else Kredensial diterima
-  authSrv -> authSrv: Menyusun profil sesi\ndan kuki keamanan
-  authSrv --> authCli: Jawaban sukses
-  deactivate authSrv
-  authCli --> ui: result.ok benar
-  deactivate authCli
-  ui -> pengguna: Notifikasi login berhasil
-  ui -> ui: Navigasi ke callbackUrl\natau beranda
-  ui -> pengguna: Halaman tujuan tampil
+server -> server: Memverifikasi password hash
+
+alt Kredensial tidak cocok (salah)
+  server --> klien: Galat otentikasi (error)
+  klien -> pengguna: Menampilkan notifikasi email/password salah
+else Kredensial cocok (sukses)
+  server -> server: Membuat sesi pengguna & cookie sesi
+  server --> klien: Hasil login sukses (ok)
+  deactivate server
+
+  klien -> pengguna: Menampilkan notifikasi login berhasil
+  klien -> klien: Navigasi ke halaman tujuan / beranda
 end
 
-deactivate ui
+deactivate klien
 
 @enduml

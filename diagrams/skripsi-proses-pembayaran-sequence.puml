@@ -3,122 +3,70 @@ title Sequence Diagram — Proses Pembayaran (VA, QRIS, E-Wallet)\nModul Transak
 
 skinparam SequenceMessageAlign center
 skinparam responseMessageBelowArrow true
+skinparam ParticipantPadding 15
+skinparam BoxPadding 15
+skinparam DefaultFontSize 15
+skinparam ArrowFontSize 13
+skinparam ParticipantFontSize 15
 
 actor Pelanggan as pengguna
-participant "HalamanPembayaran\nPaymentPage" as halaman
-participant "orderService\ngetOrder" as orderSvc
-participant "redirectToCheckout" as checkout
-participant "orderTokenizer\nServer Action" as tokenizer
-participant "Midtrans Snap" as snap
-participant "Midtrans Gateway" as midtrans
-participant "RuteMidtransNotification\nPOST webhook" as webhook
-database "BasisData\nPrisma" as db
-participant "Web Push\nsendPushToUser" as push
-participant "Service Worker\nsw-push.js" as sw
+participant "Aplikasi Butik Busana\n(Klien)" as klien
+participant "Server Next.js\n(Aksi & API)" as server
+database "BasisData\n(Prisma)" as db
+participant "Midtrans\n(Gateway)" as midtrans
 
-pengguna -> halaman: Membuka modal pembayaran pesanan
-activate halaman
-halaman -> halaman: useMidtransInit memuat skrip Snap
-halaman -> orderSvc: getOrder orderId
-activate orderSvc
-orderSvc -> db: Mengambil data pesanan
+pengguna -> klien: Membuka modal pembayaran pesanan
+activate klien
+klien -> server: getOrder(orderId)
+activate server
+server -> db: Mengambil data pesanan
 activate db
-db --> orderSvc: Order lineItems total
+db --> server: Order lineItems total
 deactivate db
-orderSvc --> halaman: orderData
-deactivate orderSvc
-halaman -> pengguna: Rekening nominal unggah bukti\ndan tombol Bayar VA QRIS
-deactivate halaman
+server --> klien: orderData
+deactivate server
+klien -> pengguna: Menampilkan opsi Pembayaran VA / QRIS / E-Wallet
+deactivate klien
 
-alt Transfer manual dan bukti foto
-  pengguna -> halaman: Unggah bukti via Cloudinary
-  activate halaman
-  pengguna -> halaman: Menekan Kirim bukti
-  halaman -> db: addBuktiPembayaran
-  activate db
-  db --> halaman: PaymentEvidence tersimpan
-  deactivate db
-  halaman -> pengguna: Toast bukti berhasil dikirim
-  deactivate halaman
-  note over pengguna, db
-    Review admin PATCH approve
-    mengubah PAID dan push terpisah
-  end note
-else Virtual Account QRIS E-Wallet
-  pengguna -> halaman: Menekan Bayar Virtual Account / QRIS
-  activate halaman
+pengguna -> klien: Menekan Bayar Virtual Account / QRIS
+activate klien
 
-  alt Belum login
-    halaman -> pengguna: Toast silakan login
-    deactivate halaman
-  else Sudah login
-    halaman -> halaman: Menyusun checkoutData\ndari orderData dan member
-    halaman -> checkout: redirectToCheckout toMidtrans true
-    activate checkout
+klien -> server: orderTokenizer(checkoutData)
+activate server
+server -> midtrans: createTransactionToken (Meminta token Snap)
+activate midtrans
+midtrans --> server: Token Snap pembayaran
+deactivate midtrans
+server --> klien: Token Snap
+deactivate server
 
-    checkout -> tokenizer: orderTokenizer checkoutData
-    activate tokenizer
-    tokenizer -> snap: createTransactionToken\nmetadata orderId memberId
-    activate snap
-    snap --> tokenizer: token Snap
-    deactivate snap
-    tokenizer --> checkout: token
-    deactivate tokenizer
+klien -> midtrans: snap.pay(token) (Membuka popup pembayaran Snap)
+activate midtrans
+pengguna -> midtrans: Menyelesaikan pembayaran (VA/QRIS)
 
-    checkout -> checkout: waitForSnap
-    checkout -> snap: snap.pay token
-    activate snap
-    snap -> pengguna: Popup pilih VA QRIS e-wallet
-    pengguna -> snap: Menyelesaikan pembayaran
-    deactivate snap
+par Callback klien
+  midtrans --> klien: Callback onSuccess()
+  klien -> pengguna: Mengalihkan ke halaman daftar transaksi (/user/.../transactions)
+  deactivate klien
+else Notifikasi server Midtrans (Webhook)
+  midtrans -> server: POST /api/midtrans-notification (Webhook)
+  activate server
 
-    par Callback klien
-      snap --> checkout: onSuccess
-      checkout -> pengguna: Redirect ke daftar transaksi
-    else Notifikasi server Midtrans
-      midtrans -> webhook: POST transaction_status\nmetadata orderId
-      activate webhook
-
-      alt settlement atau capture
-        webhook -> db: update order PAID APPROVED\nsimpan bukti invoice
-        activate db
-        db --> webhook: Order diperbarui
-        deactivate db
-
-        webhook -> push: sendPushToUser Pembayaran Berhasil
-        activate push
-        push -> db: findFirst PushSubscription
-        activate db
-        db --> push: Langganan
-        deactivate db
-        opt Ada langganan
-          push -> push: webPush.sendNotification
-          push -> sw: Payload push
-          activate sw
-          sw -> pengguna: showNotification
-          deactivate sw
-        end
-        push --> webhook: Selesai
-        deactivate push
-        webhook --> midtrans: JSON Pembayaran Berhasil
-      else deny cancel expire failure
-        webhook -> push: sendPushToUser Pembayaran Gagal
-        activate push
-        push -> sw: Payload push
-        activate sw
-        sw -> pengguna: showNotification gagal
-        deactivate sw
-        push --> webhook: Selesai
-        deactivate push
-        webhook --> midtrans: JSON Pembayaran Gagal
-      end
-      deactivate webhook
-    end
-
-    checkout --> halaman: Popup ditutup
-    deactivate checkout
-    deactivate halaman
+  alt status settlement atau capture (sukses)
+    server -> db: Perbarui status pesanan (paymentStatus=PAID, status=APPROVED)
+    activate db
+    db --> server: Status diperbarui
+    deactivate db
+    server --> midtrans: HTTP 200 OK (Pembayaran Berhasil)
+  else status deny, cancel, expire, failure (gagal/batal)
+    server -> db: Perbarui status pesanan (status=CANCELED)
+    activate db
+    db --> server: Status diperbarui
+    deactivate db
+    server --> midtrans: HTTP 200 OK (Pembayaran Gagal/Batal)
   end
+  deactivate server
+  deactivate midtrans
 end
 
 @enduml

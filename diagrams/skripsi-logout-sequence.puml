@@ -3,35 +3,37 @@ title Sequence Diagram — Logout\nPelanggan, komponen logout-button
 
 skinparam SequenceMessageAlign center
 skinparam responseMessageBelowArrow true
+skinparam ParticipantPadding 15
+skinparam BoxPadding 15
+skinparam DefaultFontSize 15
+skinparam ArrowFontSize 13
+skinparam ParticipantFontSize 15
 
 actor Pelanggan as pengguna
-participant "AntarmukaLogout" as ui
-participant "SesiNextAuth\n(signOut)" as auth
-participant "EndpointOtentikasi" as api
+participant "Aplikasi Butik Busana\n(Klien)" as klien
+participant "Server Next.js\n(Aksi & API)" as server
 
-pengguna -> ui: Menekan tombol Logout
-activate ui
+pengguna -> klien: Menekan tombol Logout
+activate klien
 
-ui -> pengguna: Menampilkan dialog konfirmasi
+klien -> pengguna: Menampilkan dialog konfirmasi
 
 alt Batal atau tutup dialog
-  pengguna -> ui: Memilih tidak jadi logout
-  ui -> pengguna: Menutup dialog\ntanpa mengubah sesi
+  pengguna -> klien: Memilih tidak jadi logout
+  klien -> pengguna: Menutup dialog tanpa mengubah sesi
 else Konfirmasi keluar
-  pengguna -> ui: Memilih yakin logout
-  ui -> auth: logout() memanggil signOut
-  activate auth
-  auth -> api: Mengirim permintaan penutupan sesi
-  activate api
-  api -> api: Mengakhiri sesi\nmenghapus jejak kuki sesi
-  api --> auth: Jawaban penutupan selesai
-  deactivate api
-  auth --> ui: signOut selesai
-  deactivate auth
-  ui -> ui: Memuat ulang ke halaman beranda
-  ui -> pengguna: Peramban menampilkan beranda
+  pengguna -> klien: Memilih yakin logout
+  klien -> server: Memanggil signOut() (Kirim request keluar)
+  activate server
+
+  server -> server: Mengakhiri sesi & menghapus cookie sesi
+  server --> klien: Jawaban penutupan selesai
+  deactivate server
+
+  klien -> klien: Memuat ulang ke halaman beranda
+  klien -> pengguna: Peramban menampilkan beranda ter-logout
 end
 
-deactivate ui
+deactivate klien
 
 @enduml

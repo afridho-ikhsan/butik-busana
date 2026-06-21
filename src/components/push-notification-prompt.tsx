@@ -118,6 +118,7 @@ function PushNotificationPromptContent() {
         size="small"
         icon={<Bell className="w-5 h-5" />}
         className="text-slate-600 hover:text-blue-600"
+        aria-label="Aktifkan notifikasi"
       />
     );
   }
@@ -135,6 +136,7 @@ function PushNotificationPromptContent() {
           )
         }
         disabled={loading}
+        aria-label={isActive ? "Nonaktifkan notifikasi" : "Aktifkan notifikasi"}
         onClick={() =>
           isActive
             ? modal.confirm({

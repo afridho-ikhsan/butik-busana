@@ -20,7 +20,6 @@ function ProductCategory() {
           .map((cat: { id: string; name?: string; slug?: string; imageUrl?: string }) => (
             <Link
               className="relative aspect-square w-20 md:w-24 lg:w-36 overflow-hidden rounded-lg shrink-0 group"
-              role={cat.name || ""}
               aria-label={`Kategori ${cat.name}`}
               href={`/products?cat=${cat.slug}`}
               key={cat.id}
@@ -31,6 +30,7 @@ function ProductCategory() {
                   src={cat.imageUrl || "/default.jpg"}
                   alt={cat.name || ""}
                   style={{ objectFit: "cover" }}
+                  sizes="(max-width: 768px) 80px, (max-width: 1024px) 96px, 144px"
                 />
               </div>
               <div className="bg-black/30 group-hover:bg-black/50 transition-all absolute top-0 left-0 right-0 bottom-0" />

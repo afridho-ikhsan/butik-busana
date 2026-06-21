@@ -3,79 +3,50 @@ title Sequence Diagram — Tambah Produk ke Keranjang\nPelanggan, halaman detail
 
 skinparam SequenceMessageAlign center
 skinparam responseMessageBelowArrow true
+skinparam ParticipantPadding 15
+skinparam BoxPadding 15
+skinparam DefaultFontSize 15
+skinparam ArrowFontSize 13
+skinparam ParticipantFontSize 15
 
 actor Pelanggan as pengguna
-participant "KomponenTambahProduk" as addUi
-participant "LayananApiKeranjang\naxios POST /api/cart" as cartApi
-participant "RuteApiKeranjang" as route
-participant "BasisData" as db
-participant "ModulKeranjangTamu\nlocalStorage" as guest
+participant "Aplikasi Butik Busana\n(Klien)" as klien
+participant "Server Next.js\n(Aksi & API)" as server
+database "BasisData\n(Prisma)" as db
 
-pengguna -> addUi: Menetapkan kuantitas\nmenekan Tambahkan ke keranjang
-activate addUi
+pengguna -> klien: Menetapkan kuantitas & menekan "Tambahkan ke keranjang"
+activate klien
 
-addUi -> addUi: Menyusun payload\nproduk varian kuantitas tautan halaman
+klien -> klien: Menyusun payload (produk, varian, kuantitas)
 
-alt Pengguna sedang masuk akun
-  addUi -> cartApi: Menambah baris melalui POST
-  activate cartApi
+klien -> server: POST /api/cart (Kirim data produk)
+activate server
 
-  cartApi -> route: Permintaan dengan kuki sesi\nisi JSON produk
-  activate route
+server -> server: Memeriksa sesi pengguna aktif
 
-  route -> route: Memeriksa sesi pengguna aktif
+alt Sesi tidak sah atau kosong
+  server --> klien: Respons perlu login
+  klien -> pengguna: Tampilkan pesan galat dari server
+else Sesi sah
+  server -> db: Membaca keranjang milik pengguna
+  activate db
+  db --> server: Daftar baris tersimpan
+  deactivate db
 
-  alt Sesi tidak sah atau kosong
-    route --> cartApi: Respons perlu login
-    deactivate route
-    cartApi --> addUi: Permintaan ditolak
-    deactivate cartApi
-    addUi -> pengguna: Pesan galat dari server
-  else Sesi sah
-    route -> db: Membaca keranjang milik pengguna
-    activate db
-    db --> route: Daftar baris tersimpan
-    deactivate db
+  server -> server: Mencocokkan produk/varian dan menjumlahkan kuantitas
 
-    route -> route: Mencocokkan produk dan varian\nmenjumlahkan kuantitas baris lama\natau menambah baris baru
+  server -> db: Menyimpan keranjang terbaru
+  activate db
+  db --> server: Tersimpan
+  deactivate db
 
-    route -> db: Menyimpan keranjang terbaru
-    activate db
-    db --> route: Tersimpan
-    deactivate db
+  server --> klien: Balasan keranjang terupdate
+  deactivate server
 
-    route --> cartApi: Balasan keranjang dan subtotal
-    deactivate route
-    cartApi --> addUi: Data untuk penyegaran cache
-    deactivate cartApi
-
-    addUi -> addUi: Menyegarkan daftar keranjang\nmemuat ikon penghitung
-
-    addUi -> pengguna: Notifikasi produk masuk keranjang
-  end
-
-else Pengguna tamu tidak bersesi
-  addUi -> guest: Meminta penyisipan baris\ndan penyimpanan di perangkat
-  activate guest
-
-  guest -> guest: Memuat snapshot keranjang tamu\nmencocokkan produk dan varian
-
-  alt Baris sama produk dan varian
-    guest -> guest: Menambah kuantitas\npada entri yang ada
-  else Baris baru
-    guest -> guest: Menambah entri dengan penanda baru
-  end
-
-  guest -> guest: Menulis JSON ke localStorage\nmemancarkan peristiwa pembaruan
-
-  guest --> addUi: Keranjang tamu terkini
-  deactivate guest
-
-  addUi -> addUi: Memperbarui state komponen
-
-  addUi -> pengguna: Notifikasi produk masuk keranjang
+  klien -> klien: Menyegarkan daftar keranjang & ikon penghitung
+  klien -> pengguna: Tampilkan notifikasi produk masuk keranjang
 end
 
-deactivate addUi
+deactivate klien
 
 @enduml

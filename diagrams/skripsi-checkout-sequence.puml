@@ -1,118 +1,93 @@
 @startuml skripsi_checkout_sequence
-title Sequence Diagram — Proses Checkout\nBagian pertama — dari keranjang hingga pesanan tercatat
+title Sequence Diagram — Proses Checkout & Pembayaran via Midtrans Snap
 
 skinparam SequenceMessageAlign center
 skinparam responseMessageBelowArrow true
+skinparam ParticipantPadding 15
+skinparam BoxPadding 15
+skinparam DefaultFontSize 15
+skinparam ArrowFontSize 13
+skinparam ParticipantFontSize 15
 
 actor Pelanggan as pengguna
-participant "ModalCheckoutKeranjang" as modal
-participant "RutePesananTamu\nPOST /api/orders/guest" as guestRoute
-participant "AksiServerBuatPesanan\ncreateOrder" as createOrder
-participant "BasisData" as db
+participant "Aplikasi Butik Busana\n(Klien)" as klien
+participant "Server Next.js\n(Aksi & API)" as server
+database "BasisData\n(Prisma)" as db
+participant "Midtrans\n(Gateway)" as midtrans
 
-pengguna -> modal: Membuka checkout\nmeninjau item langkah satu
-modal -> pengguna: Menampilkan daftar belanja
+== Bagian 1: Pembuatan Pesanan ==
 
-pengguna -> modal: Melanjutkan\nke data pemesanan
-modal -> pengguna: Formulir penerima wilayah kurir\nongkir catatan
+pengguna -> klien: Membuka keranjang & menekan Checkout
+activate klien
+klien -> pengguna: Menampilkan Formulir Pengiriman (Langkah 2)
 
-pengguna -> modal: Mengisi data\nmenekan lanjut pembayaran\nlalu mengonfirmasi
+pengguna -> klien: Mengisi data & menekan Lanjut Pembayaran
+klien -> pengguna: Menampilkan dialog konfirmasi data
 
-modal -> modal: Memvalidasi field wajib\nformat telepon alamat kurir
+pengguna -> klien: Mengonfirmasi data pemesanan benar
 
-alt Formulir tidak lolos
-  modal -> pengguna: Pesan kesalahan pada bidang
-else Formulir lolos
-  alt Pengguna tamu
-    modal -> guestRoute: Mengirim JSON baris ringkas\ndan data pengiriman
-    activate guestRoute
+klien -> klien: Memvalidasi formulir pengiriman
+alt Validasi gagal
+  klien -> pengguna: Menampilkan pesan kesalahan
+else Validasi sukses
+  klien -> server: createOrder(checkoutData)
+  activate server
 
-    guestRoute -> guestRoute: Memastikan akun tamu sistem\ntetap tersedia
+  server -> db: Mencatat pesanan baru (paymentStatus=NOT_PAID)
+  activate db
+  db --> server: Data pesanan tersimpan (orderId, orderNumber)
+  deactivate db
 
-    guestRoute -> db: Mencatat pesanan baru\nuntuk pengguna tamu
-    activate db
-    db --> guestRoute: Identitas pesanan
-    deactivate db
+  server --> klien: Konfirmasi pesanan dibuat (createdOrder)
+  deactivate server
 
-    alt Data tidak lengkap atau gagal server
-      guestRoute --> modal: Respons galat
-      deactivate guestRoute
-      modal -> pengguna: Notifikasi gagal membuat pesanan
-    else Pesan tamu berhasil
-      guestRoute --> modal: Identitas pesanan untuk halaman publik
-      deactivate guestRoute
-
-      modal -> modal: Mengosongkan keranjang tamu\nmenutup modal
-
-      modal -> pengguna: Mengalihkan ke halaman ringkasan\npesanan tamu
-    end
-
-  else Pengguna masuk akun
-    modal -> createOrder: Meminta pencatatan pesanan\ndengan baris lengkap sesi
-    activate createOrder
-
-    createOrder -> createOrder: Memeriksa sesi aktif
-
-    alt Sesi tidak ada
-      createOrder --> modal: Galat perlu masuk
-      deactivate createOrder
-      modal -> pengguna: Notifikasi gagal sesi
-    else Sesi ada
-      createOrder -> db: Mencatat pesanan pengguna\nsubtotal ongkir status belum dibayar
-      activate db
-      db --> createOrder: Identitas dan nomor pesanan
-      deactivate db
-
-      createOrder --> modal: Ringkasan pesanan tersimpan
-      deactivate createOrder
-
-      modal -> pengguna: Menampilkan langkah opsi pembayaran\ndi dalam modal
-    end
-  end
+  klien -> klien: Beralih ke Langkah 3 (PaymentPage)
+  klien -> pengguna: Menampilkan tombol "Bayar Virtual Account / QRIS"
 end
 
-newpage
-title Sequence Diagram — Proses Checkout\nBagian kedua — pembayaran pelanggan login
+== Bagian 2: Pembayaran via Midtrans Snap ==
 
-actor Pelanggan as pengguna2
-participant "HalamanOpsiPembayaran\ndalam modal" as payUi
-participant "AksiTokenizer\norderTokenizer" as tokenizer
-participant "MitraPembayaranSnap\nMidtrans" as midtrans
-participant "SkripSnapPeramban" as snapJs
+pengguna -> klien: Menekan "Bayar Virtual Account / QRIS"
 
-pengguna2 -> payUi: Membaca rekening transfer\nmengunggah bukti jika manual\natau memilih bayar Snap
+klien -> server: orderTokenizer(checkoutData)
+activate server
 
-alt Pilihan bayar Snap Midtrans
-  payUi -> tokenizer: Meminta token transaksi\nmengacu pesanan yang sudah ada
-  activate tokenizer
+server -> midtrans: createTransactionToken (Meminta token Snap)
+activate midtrans
+midtrans --> server: Token Snap pembayaran
+deactivate midtrans
 
-  tokenizer -> tokenizer: Menyusun rincian barang\nongkir pembeli dan metadata
+server --> klien: Token Snap
+deactivate server
 
-  tokenizer -> midtrans: Meminta token Snap
-  activate midtrans
-  midtrans --> tokenizer: Token pembayaran
-  deactivate midtrans
+klien -> midtrans: snap.pay(token) (Membuka popup pembayaran Snap)
+activate midtrans
 
-  tokenizer --> payUi: Menyerahkan token ke klien
-  deactivate tokenizer
+pengguna -> midtrans: Menyelesaikan pembayaran (VA/QRIS)
 
-  payUi -> snapJs: Membuka alur pembayaran\nSnap dengan token
-  activate snapJs
+par Callback Klien
+  midtrans --> klien: Callback onSuccess()
+  klien -> pengguna: Mengalihkan ke halaman daftar transaksi (/user/.../transactions)
+  deactivate klien
+else Webhook Server
+  midtrans -> server: POST /api/midtrans-notification (Webhook)
+  activate server
 
-  pengguna2 -> snapJs: Menyelesaikan VA QRIS atau dompet
-
-  alt Pembayaran sukses pada Snap
-    snapJs --> payUi: Callback sukses
-    payUi -> pengguna2: Mengalihkan ke halaman daftar transaksi
-  else Pending galat atau tutup
-    snapJs --> payUi: Callback non sukses
-    payUi -> pengguna2: Notifikasi status pembayaran
+  alt status settlement / capture (Sukses)
+    server -> db: Perbarui status pesanan (paymentStatus=PAID, status=APPROVED)
+    activate db
+    db --> server: Status diperbarui
+    deactivate db
+    server --> midtrans: HTTP 200 OK (Pembayaran Berhasil)
+  else status deny / cancel / expire / failure (Gagal)
+    server -> db: Perbarui status pesanan (status=CANCELED)
+    activate db
+    db --> server: Status diperbarui
+    deactivate db
+    server --> midtrans: HTTP 200 OK (Pembayaran Gagal/Batal)
   end
-
-  deactivate snapJs
-
-else Pembayaran transfer manual
-  payUi -> pengguna2: Menunjukkan tujuan transfer\nmenerima unggah bukti
+  deactivate server
+  deactivate midtrans
 end
 
 @enduml

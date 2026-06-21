@@ -11,39 +11,27 @@ start
 :Menekan tombol tambahkan ke keranjang;
 
 |Client|
-if (Pelanggan sudah masuk akun?) then (ya)
-  :Mengirim data produk dan kuantitas\nke layanan keranjang;
-  |Server|
-  :Memverifikasi bahwa sesi pengguna aktif;
-  if (Sesi tidak valid?) then (ya)
-    :Menolak permintaan\ndengan pesan perlu masuk akun;
-    |Client|
-    :Menampilkan pesan kesalahan kepada pengguna;
-    stop
-  endif
-  |Database|
-  :Mengambil isi keranjang\nyang terikat pada pengguna;
-  |Server|
-  if (Barang dan varian yang sama\nsudah ada di keranjang?) then (ya)
-    :Menambah kuantitas\npada baris yang sudah ada;
-  else (tidak)
-    :Menambah entri baris baru\nberisi rincian produk;
-  endif
-  :Menyimpan keranjang yang diperbarui;
+:Mengirim data produk dan kuantitas\nke layanan keranjang;
+|Server|
+:Memverifikasi bahwa sesi pengguna aktif;
+if (Sesi tidak valid?) then (ya)
+  :Menolak permintaan\ndengan pesan perlu masuk akun;
   |Client|
-  :Menyegarkan tampilan ikon dan daftar keranjang;
-  :Menampilkan notifikasi berhasil;
-else (tidak)
-  :Membaca keranjang tamu\ntersimpan di peramban;
-  if (Barang dan varian yang sama\nsudah ada di keranjang?) then (ya)
-    :Menambah kuantitas pada baris yang sudah ada;
-  else (tidak)
-    :Menambah entri baris baru\nberisi rincian produk;
-  endif
-  :Menyimpan keranjang tamu di peramban;
-  :Menyegarkan tampilan ikon dan daftar keranjang;
-  :Menampilkan notifikasi berhasil;
+  :Menampilkan pesan kesalahan kepada pengguna;
+  stop
 endif
+|Database|
+:Mengambil isi keranjang\nyang terikat pada pengguna;
+|Server|
+if (Barang dan varian yang sama\nsudah ada di keranjang?) then (ya)
+  :Menambah kuantitas\npada baris yang sudah ada;
+else (tidak)
+  :Menambah entri baris baru\nberisi rincian produk;
+endif
+:Menyimpan keranjang yang diperbarui;
+|Client|
+:Menyegarkan tampilan ikon dan daftar keranjang;
+:Menampilkan notifikasi berhasil;
 
 stop
 

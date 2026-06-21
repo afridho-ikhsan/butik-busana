@@ -55,8 +55,6 @@ export async function GET(req: NextRequest) {
         },
       });
 
-      console.log(orders)
-
       matchedCounts[String(minutes)] = orders.length;
 
       for (const order of orders) {
