@@ -14,7 +14,7 @@ function ErrorInfo({
 }) {
   return (
     <div className="p-5 flex flex-col justify-center items-center gap-3 min-h-[30rem] h-full w-full">
-      <Image src={customIconUrl || WarningIcon} alt="" className="w-24 h-24" />
+      <Image src={customIconUrl || WarningIcon} alt="Ikon Peringatan" className="w-24 h-24" />
       <div className="text-center space-y-2">
         <h3 className="text-xl font-semibold">
           {customTitle || `Terjadi kesalahan internal`}

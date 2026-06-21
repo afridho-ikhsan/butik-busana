@@ -72,10 +72,14 @@ function HamburgerButton() {
               isOpen ? "translate-x-0" : "translate-x-96"
             } right-0 top-0 z-30 rounded-l-lg py-16 space-y-3`}
           >
-            <IoClose
-              className="absolute top-3 left-3 text-3xl cursor-pointer"
+            <button
+              type="button"
+              className="absolute top-3 left-3 text-3xl cursor-pointer text-slate-800 p-1 rounded-full hover:bg-slate-200"
               onClick={() => setIsOpen(false)}
-            />
+              aria-label="Tutup menu navigasi"
+            >
+              <IoClose />
+            </button>
 
             {isLoggedIn ? (
               <>
@@ -139,42 +143,50 @@ function HamburgerButton() {
             <hr className="border-2 w-[95%] mx-auto" />
 
             <ul className="flex flex-col gap-2 text-slate-700 px-2.5">
-              <Link
-                className={`w-full p-5 ${
-                  pathname === "/" ? "bg-slate-200" : "bg-slate-100"
-                } transition-all hover:bg-slate-200 flex gap-2 items-center`}
-                href="/"
-                onClick={() => setIsOpen(false)}
-              >
-                <RiHome6Line /> Home
-              </Link>
-              <Link
-                className={`w-full p-5 ${
-                  pathname === "/products" ? "bg-slate-200" : "bg-slate-100"
-                } transition-all hover:bg-slate-200 flex gap-2 items-center`}
-                href="/products"
-                onClick={() => setIsOpen(false)}
-              >
-                <LuGlasses /> Product
-              </Link>
-              <Link
-                className={`w-full p-5 ${
-                  pathname === "/cari-pesanan" ? "bg-slate-200" : "bg-slate-100"
-                } transition-all hover:bg-slate-200 flex gap-2 items-center`}
-                href="/cari-pesanan"
-                onClick={() => setIsOpen(false)}
-              >
-                <LuSearch /> Cari Pesanan
-              </Link>
-              <Link
-                className={`w-full p-5 ${
-                  pathname === "/kontak" ? "bg-slate-200" : "bg-slate-100"
-                } transition-all hover:bg-slate-200 flex gap-2 items-center`}
-                href="/kontak"
-                onClick={() => setIsOpen(false)}
-              >
-                <BiPhoneCall /> Kontak
-              </Link>
+              <li>
+                <Link
+                  className={`w-full p-5 ${
+                    pathname === "/" ? "bg-slate-200" : "bg-slate-100"
+                  } transition-all hover:bg-slate-200 flex gap-2 items-center`}
+                  href="/"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <RiHome6Line /> Home
+                </Link>
+              </li>
+              <li>
+                <Link
+                  className={`w-full p-5 ${
+                    pathname === "/products" ? "bg-slate-200" : "bg-slate-100"
+                  } transition-all hover:bg-slate-200 flex gap-2 items-center`}
+                  href="/products"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <LuGlasses /> Product
+                </Link>
+              </li>
+              <li>
+                <Link
+                  className={`w-full p-5 ${
+                    pathname === "/cari-pesanan" ? "bg-slate-200" : "bg-slate-100"
+                  } transition-all hover:bg-slate-200 flex gap-2 items-center`}
+                  href="/cari-pesanan"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <LuSearch /> Cari Pesanan
+                </Link>
+              </li>
+              <li>
+                <Link
+                  className={`w-full p-5 ${
+                    pathname === "/kontak" ? "bg-slate-200" : "bg-slate-100"
+                  } transition-all hover:bg-slate-200 flex gap-2 items-center`}
+                  href="/kontak"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <BiPhoneCall /> Kontak
+                </Link>
+              </li>
             </ul>
           </div>
         </>,

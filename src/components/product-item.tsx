@@ -56,7 +56,7 @@ function ProductItem({
               </span>
             )}
             {hasDiscount && price.normalPrice > 0 && (
-              <span className="absolute top-2 right-2 z-10 rounded bg-red-500 px-2 py-0.5 text-[10px] font-medium text-white">
+              <span className="absolute top-2 right-2 z-10 rounded bg-red-700 px-2 py-0.5 text-[10px] font-medium text-white">
                 -{Math.round(((price.normalPrice - price.discountPrice) / price.normalPrice) * 100)}%
               </span>
             )}
@@ -76,7 +76,7 @@ function ProductItem({
             {rupiahFormatter.format(price.discountPrice)}
           </span>
           {hasDiscount && (
-            <span className="text-xs text-slate-400 line-through">
+            <span className="text-xs text-slate-600 line-through">
               {rupiahFormatter.format(price.normalPrice)}
             </span>
           )}

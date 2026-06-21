@@ -160,16 +160,19 @@ function Slider({ slides = [], durationSeconds = DEFAULT_DURATION }: { slides?: 
       </div>
       <div className="flex gap-4 absolute m-auto left-1/2 -translate-x-1/2 bottom-3 lg:bottom-8 z-10">
         {items.map((slide, i) => (
-          <div
+          <button
+            type="button"
             className={`w-3 aspect-square rounded-full ring-1 ring-gray-600 cursor-pointer flex items-center justify-center z-10 ${current === i ? "scale-150" : ""
-              } relative`}
+              } relative focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500`}
             key={slide.id}
             onClick={() => setCurrent(i)}
+            aria-label={`Slide ${i + 1}`}
+            aria-current={current === i ? "true" : "false"}
           >
             {current === i && (
-              <div className="w-[6px] aspect-square bg-gray-600 rounded-full" />
+              <span className="w-[6px] aspect-square bg-gray-600 rounded-full block" />
             )}
-          </div>
+          </button>
         ))}
       </div>
     </div>

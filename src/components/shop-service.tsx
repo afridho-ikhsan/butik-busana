@@ -7,9 +7,9 @@ function ShopService() {
     <div className="pt-2 flex flex-col gap-1">
       <div className="px-3 flex items-center justify-center gap-2">
         <div className="h-1 rounded-full flex-grow bg-slate-400" />
-        <h3 className="ml-2 font-bold text-lg sm:text-xl shrink-0">
+        <h2 className="ml-2 font-bold text-lg sm:text-xl shrink-0">
           Layanan Toko Kami
-        </h3>
+        </h2>
         <div className="h-1 rounded-full flex-grow bg-slate-400" />
       </div>
 
@@ -19,7 +19,7 @@ function ShopService() {
             <ImDropbox className="text-5xl" />
 
             <div className="space-y-2">
-              <h4 className="font-medium text-xl">Produk Berkwalitas</h4>
+              <h3 className="font-medium text-xl">Produk Berkwalitas</h3>
               <p>
                 Kami menawarkan aneka produk berkwalitas dengan harga terjangkau
               </p>
@@ -30,7 +30,7 @@ function ShopService() {
             <RiLuggageCartLine className="text-5xl" />
 
             <div className="space-y-2">
-              <h4 className="font-medium text-xl">Easy Checkout</h4>
+              <h3 className="font-medium text-xl">Easy Checkout</h3>
               <p>Pesanan Anda otomatis terhubung ke nomor WhatsApp admin kami</p>
             </div>
           </div>
@@ -39,7 +39,7 @@ function ShopService() {
             <IoChatbubbleEllipsesOutline className="text-5xl" />
 
             <div className="space-y-2">
-              <h4 className="font-medium text-xl">Tracking Pesanan</h4>
+              <h3 className="font-medium text-xl">Tracking Pesanan</h3>
               <p>
                 Anda dapat menghubungi CS kami untuk menanyakan proses 
                 pesanan Anda

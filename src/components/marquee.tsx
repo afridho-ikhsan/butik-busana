@@ -38,7 +38,7 @@ export default function Marquee({ items, durationSeconds = 10 }: { items: Marque
     ));
 
   return (
-    <div className="marquee mb-3 lg:mb-0 py-2 lg:py-3 text-xs md:text-base lg:text-lg font-semibold text-slate-50 bg-blue-500 overflow-hidden">
+    <div className="marquee mb-3 lg:mb-0 py-2 lg:py-3 text-xs md:text-base lg:text-lg font-semibold text-slate-50 bg-blue-600 overflow-hidden">
       <div
         ref={trackRef}
         className="marquee-track inline-flex w-max flex-nowrap items-center"

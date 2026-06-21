@@ -20,7 +20,6 @@ function ProductCategory() {
           .map((cat: { id: string; name?: string; slug?: string; imageUrl?: string }) => (
             <Link
               className="relative aspect-square w-20 md:w-24 lg:w-36 overflow-hidden rounded-lg shrink-0 group"
-              aria-label={`Kategori ${cat.name}`}
               href={`/products?cat=${cat.slug}`}
               key={cat.id}
             >

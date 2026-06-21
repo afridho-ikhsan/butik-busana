@@ -26,7 +26,7 @@ function Sheet({
 }) {
   return (
     <ShadSheet open={open} onOpenChange={onOpenChange}>
-      <SheetTrigger>{button}</SheetTrigger>
+      <SheetTrigger aria-label={title || "Buka menu"}>{button}</SheetTrigger>
       <SheetContent className={`${className}`}>
         <SheetHeader>
           <SheetTitle>{title}</SheetTitle>

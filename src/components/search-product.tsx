@@ -40,7 +40,7 @@ export default function SearchProduct({ className }: { className?: string }) {
       {isFetching ? (
         <div className="px-3 py-2 text-slate-500 text-sm">Memuat...</div>
       ) : value.length < 2 ? (
-        <div className="px-3 py-2 text-slate-400 text-sm">Ketik minimal 2 karakter</div>
+        <div className="px-3 py-2 text-slate-600 text-sm">Ketik minimal 2 karakter</div>
       ) : products.length === 0 ? (
         <div className="px-3 py-2 text-slate-500 text-sm">Tidak ada hasil</div>
       ) : (
@@ -85,6 +85,7 @@ export default function SearchProduct({ className }: { className?: string }) {
             onFocus={() => value.length >= 2 && setOpen(true)}
             onBlur={() => setTimeout(() => setOpen(false), 200)}
             placeholder="Cari Produk"
+            aria-label="Cari Produk"
             className="flex-1 min-w-0 py-2 pl-5 pr-12 border-0 bg-transparent outline-none text-sm"
           />
           {value ? (
@@ -92,13 +93,14 @@ export default function SearchProduct({ className }: { className?: string }) {
               type="button"
               onClick={() => setValue("")}
               className="absolute right-12 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full hover:bg-slate-200 text-slate-500"
-              aria-label="Clear"
+              aria-label="Bersihkan pencarian"
             >
               <span className="text-lg leading-none">×</span>
             </button>
           ) : null}
           <button
             type="submit"
+            aria-label="Cari"
             className="shrink-0 m-1.5 p-1.5 rounded-full bg-slate-950 flex items-center justify-center"
           >
             <CiSearch className="text-white text-xl" />

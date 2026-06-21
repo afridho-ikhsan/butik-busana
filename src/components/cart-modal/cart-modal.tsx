@@ -269,7 +269,7 @@ function CartModal() {
         <div className="relative ">
           <IoCartOutline className="text-3xl" />
 
-          <div className="rounded-full h-5 w-5 bg-red-500 text-slate-50 absolute left-[80%] -top-2 flex items-center justify-center">
+          <div className="rounded-full h-5 w-5 bg-red-700 text-slate-50 absolute left-[80%] -top-2 flex items-center justify-center">
             {counter}
           </div>
         </div>
@@ -327,6 +327,7 @@ function CartModal() {
                       type="text"
                       id="nama"
                       placeholder="Nama Penerima"
+                      aria-label="Nama Penerima"
                       value={nama}
                       onChange={(e) => {
                         dispatch({
@@ -349,6 +350,7 @@ function CartModal() {
                       type="tel"
                       id="nomorHp"
                       placeholder="Nomor Telepon"
+                      aria-label="Nomor Telepon"
                       value={nomorHp}
                       onChange={(e) => {
                         const input = e.target.value;
@@ -388,6 +390,7 @@ function CartModal() {
                     <TextArea
                       id="alamat"
                       placeholder="Nama Jalan, Gedung, No. Rumah"
+                      aria-label="Nama Jalan, Gedung, No. Rumah"
                       value={alamat}
                       onChange={(e) => {
                         dispatch({
@@ -471,6 +474,7 @@ function CartModal() {
                     <Input
                       id="catatan"
                       placeholder="Catatan"
+                      aria-label="Catatan"
                       value={catatan}
                       onChange={(e) => {
                         dispatch({

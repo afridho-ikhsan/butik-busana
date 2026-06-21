@@ -66,7 +66,7 @@ export default function PwaInstallPrompt() {
           <Button type="primary" size="small" onClick={handleInstall} icon={<Download className="w-4 h-4" />}>
             Pasang
           </Button>
-          <Button type="text" size="small" onClick={handleDismiss} icon={<X className="w-4 h-4" />} />
+          <Button type="text" size="small" onClick={handleDismiss} icon={<X className="w-4 h-4" />} aria-label="Tutup" />
         </div>
       </div>
     </div>

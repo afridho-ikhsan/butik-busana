@@ -110,7 +110,12 @@ function OpenedModal({
             <p className="font-medium text-base md:text-xl line-clamp-1">{modalTitle}</p>
           </div>
 
-          <button className="rounded-full p-1 flex items-center justify-center w-6 h-6 md:w-8 md:h-8 bg-slate-400 hover:bg-slate-500 modal-close">
+          <button
+            type="button"
+            className="rounded-full p-1 flex items-center justify-center w-6 h-6 md:w-8 md:h-8 bg-slate-400 hover:bg-slate-500 modal-close"
+            onClick={handleClose}
+            aria-label="Tutup modal"
+          >
             {customCloseIcon || <IoClose className="text-slate-50 text-5xl" />}
           </button>
         </div>

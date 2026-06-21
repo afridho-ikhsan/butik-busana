@@ -98,7 +98,7 @@ function Navbar() {
       </div>
 
       {!isAdmin && (
-        <SearchProduct className="relative block min-[1240px]:hidden w-full place-self-end opacity-50 focus:opacity-100 focus-within::opacity-100 focus-visible:opacity-100 hover:opacity-100 active:opacity-100" />
+        <SearchProduct className="relative block min-[1240px]:hidden w-full place-self-end opacity-100" />
       )}
     </nav>
   );

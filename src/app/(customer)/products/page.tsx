@@ -30,7 +30,7 @@ async function ListPage(props: {
           </Link>
         </div> */}
         <Link href="#daftar-produk" className="absolute inset-0 w-full cursor-pointer">
-          <Image src="/catalog-banner.png" alt="" fill className="object-contain" />
+          <Image src="/catalog-banner.png" alt="Katalog Produk Butik Busana" fill className="object-contain" />
         </Link>
       </div>
 
