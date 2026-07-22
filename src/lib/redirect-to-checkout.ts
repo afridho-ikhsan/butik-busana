@@ -24,6 +24,18 @@ function waitForSnap(maxWaitMs = 8000) {
   });
 }
 
+async function syncPaymentFromSnapResult(result: Record<string, unknown>) {
+  try {
+    await fetch("/api/midtrans-notification", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(result),
+    });
+  } catch (error) {
+    console.error("Gagal sync status pembayaran dari Snap:", error);
+  }
+}
+
 export const redirectToCheckout = async (
   checkoutData: CheckoutDataType & {
     orderId?: string;
@@ -42,12 +54,29 @@ export const redirectToCheckout = async (
       const redirectUserId =
         checkoutData.informasiPembeli.userSlug ||
         checkoutData.informasiPembeli.memberId;
+      const successRedirectUrl = redirectUserId
+        ? `/user/${redirectUserId}/transactions`
+        : checkoutData.orderId
+          ? `/order/${checkoutData.orderId}`
+          : "/";
 
       snap.pay(token, {
-        onSuccess: () => {
-          window.location.href = `/user/${redirectUserId}/transactions`;
+        onSuccess: async (result: Record<string, unknown>) => {
+          await syncPaymentFromSnapResult({
+            ...result,
+            custom_field1: checkoutData.orderId || result.custom_field1,
+            custom_field2: checkoutData.orderNumber || result.custom_field2,
+          });
+          window.location.href = successRedirectUrl;
         },
-        onPending: () => toast.info("Pembayaran menunggu konfirmasi"),
+        onPending: async (result: Record<string, unknown>) => {
+          await syncPaymentFromSnapResult({
+            ...result,
+            custom_field1: checkoutData.orderId || result.custom_field1,
+            custom_field2: checkoutData.orderNumber || result.custom_field2,
+          });
+          toast.info("Pembayaran menunggu konfirmasi");
+        },
         onError: () => toast.error("Pembayaran tidak valid"),
         onClose: () => toast.info("Pembayaran dibatalkan"),
       });

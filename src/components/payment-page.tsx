@@ -31,7 +31,7 @@ function PaymentPage({
   const { mutatePaymentEvidence, mutatePaymentEvidencePending } = useMutatePaymentEvidence();
   const { isOpen } = useContext(ModalContext);
   const { rekeningBank, getRekeningBankLoading } = useGetRekingBank(isOpen);
-  const { member, isLoggedIn } = useCurrentMember();
+  const { member } = useCurrentMember();
   useMidtransInit();
 
   const { data: orderData, isLoading } = useQuery({
@@ -108,10 +108,6 @@ function PaymentPage({
   const { mutate: payWithMidtrans, isPending: payWithMidtransPending } = useMutation({
     mutationKey: ["pay-with-midtrans", orderId],
     mutationFn: async () => {
-      if (!isLoggedIn) {
-        toast.error("Untuk melanjutkan, silahkan login terlebih dahulu");
-        return;
-      }
       if (!orderData) {
         toast.error("Data pesanan belum tersedia");
         return;
@@ -152,7 +148,7 @@ function PaymentPage({
             orderData.recipientName ||
             member?.profile?.nickname ||
             member?.loginEmail ||
-            "",
+            "Pelanggan",
           nomorHp:
             orderData.recipientPhone ||
             (member?.contact?.phones && member.contact.phones[0]) ||

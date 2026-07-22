@@ -1,14 +1,6 @@
 import { useGetCitiesByProvince } from "@/utils/location-utils";
+import { Select } from "antd";
 import { useState } from "react";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 function DropdownCity({
   value,
@@ -21,57 +13,40 @@ function DropdownCity({
   provinsi: string;
   validationErrorMessage: string;
 }) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const idProvinsi = provinsi.split(";")[0];
-  const { kota, isLoading } = useGetCitiesByProvince(idProvinsi, isModalOpen);
+  const { kota, isLoading } = useGetCitiesByProvince(idProvinsi, isOpen);
+  const disabled = !idProvinsi;
 
   return (
     <div className="input-data">
       <Select
-        open={isModalOpen}
-        onOpenChange={setIsModalOpen}
-        onValueChange={onChange}
-        disabled={idProvinsi === ""}
-      >
-        <SelectTrigger
-          className={`w-full h-full bg-transparent border-2 border-slate-300 pl-4 pb-3 flex items-center outline-none rounded-lg text-sm focus:border-slate-500 ${
-            value ? "pt-6" : "pt-3"
-          } ${idProvinsi === "" ? "cursor-not-allowed" : "cursor-pointer"}`}
-          id="provinsi"
-          value={value}
-        >
-          <SelectValue placeholder="Pilih Kota" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            <SelectLabel>Provinsi</SelectLabel>
-            {isLoading ? (
-              <SelectItem value="loading ">Memuat...</SelectItem>
-            ) : (
-              kota.map((kotaItem) => (
-                <SelectItem
-                  key={kotaItem.id}
-                  value={`${kotaItem.id};${kotaItem.name}`}
-                >
-                  {kotaItem.name}
-                </SelectItem>
-              ))
-            )}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
-      <label
-        htmlFor="kota"
-        className={`absolute transition-all duration-200 text-slate-400 ${
-          value ? "text-xs top-1.5 left-4" : "hidden"
-        }`}
-      >
-        Pilih Kota
-      </label>
+        showSearch
+        allowClear
+        size="large"
+        className="w-full"
+        id="kota"
+        placeholder="Pilih Kota"
+        value={value || undefined}
+        onChange={(val) => onChange(val || "")}
+        onOpenChange={setIsOpen}
+        disabled={disabled}
+        loading={isLoading}
+        status={validationErrorMessage ? "error" : undefined}
+        optionFilterProp="label"
+        filterOption={(input, option) =>
+          String(option?.label ?? "")
+            .toLowerCase()
+            .includes(input.toLowerCase())
+        }
+        options={kota.map((item) => ({
+          value: `${item.id};${item.name}`,
+          label: item.name,
+        }))}
+        notFoundContent={isLoading ? "Memuat..." : "Kota tidak ditemukan"}
+      />
       {validationErrorMessage && (
-        <p className="validation-error-message">
-          {validationErrorMessage}
-        </p>
+        <p className="validation-error-message">{validationErrorMessage}</p>
       )}
     </div>
   );

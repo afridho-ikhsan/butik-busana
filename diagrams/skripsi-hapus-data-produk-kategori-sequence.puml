@@ -1,0 +1,66 @@
+@startuml skripsi_hapus_data_produk_kategori_sequence
+title Sequence Diagram — Hapus Data (Produk, Kategori) oleh Admin\nModul Admin, DeleteButton & ConfirmationBox
+
+skinparam SequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam ParticipantPadding 15
+skinparam BoxPadding 15
+skinparam DefaultFontSize 15
+skinparam ArrowFontSize 13
+skinparam ParticipantFontSize 15
+
+actor Admin as pengguna
+participant "Aplikasi Butik Busana\n(Klien)" as klien
+participant "Server Next.js\n(API Route)" as server
+database "BasisData\n(Prisma)" as db
+
+pengguna -> klien: Menekan tombol "Hapus" (DeleteButton)
+activate klien
+
+klien -> klien: Menampilkan kotak dialog konfirmasi (ConfirmationBox)
+pengguna -> klien: Menekan tombol "Ya, Hapus" pada dialog konfirmasi
+
+alt Menghapus Data Kategori
+  klien -> server: DELETE /api/admin/collections/[id]
+  activate server
+  server -> server: Memvalidasi otorisasi peran (admin/owner)
+  
+  alt Otorisasi Berhasil
+    server -> db: prisma.collection.delete()
+    activate db
+    db --> server: Sukses menghapus record kategori
+    deactivate db
+    server --> klien: Respons sukses { success: true } (JSON)
+  else Otorisasi Gagal
+    server --> klien: Respons error 403 (Unauthorized)
+  end
+  
+else Menghapus Data Produk
+  klien -> server: DELETE /api/admin/products/[id]
+  server -> server: Memvalidasi otorisasi peran (admin/owner)
+  
+  alt Otorisasi Berhasil
+    server -> db: prisma.product.delete()
+    activate db
+    db --> server: Sukses menghapus record produk
+    deactivate db
+    server --> klien: Respons sukses { success: true } (JSON)
+  else Otorisasi Gagal
+    server --> klien: Respons error 403 (Unauthorized)
+    deactivate server
+  end
+  
+end
+
+alt Respons API Sukses
+  klien -> klien: Menampilkan pesan toast sukses
+  klien -> klien: Memperbarui tampilan daftar data (router.refresh)
+  klien --> pengguna: Menampilkan data terbaru tanpa record yang terhapus
+else Respons API Gagal / Error
+  klien -> klien: Menampilkan pesan toast error
+  klien --> pengguna: Menampilkan pesan kegagalan hapus data
+end
+
+deactivate klien
+
+@enduml

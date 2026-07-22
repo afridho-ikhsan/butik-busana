@@ -82,9 +82,13 @@ export function validateForm(state: typeof initialState) {
     errors.nama = "Nama Penerima wajib diisi";
   if (!state.nomorHp || state.nomorHp === "") {
     errors.nomorHp = "Nomor Telepon wajib diisi";
-  } else if (!/^62\d{9,}$/.test(state.nomorHp.replace(/\D/g, ""))) {
-    errors.nomorHp =
-      "Nomor yang anda masukkan tidak sesuai format, pastikan nomor yang dimasukkan diawali dengan 628";
+  } else {
+    const phoneDigits = state.nomorHp.replace(/\D/g, "");
+    // Terima format lokal 08... atau internasional 62...
+    if (!/^(08\d{8,11}|62\d{9,12})$/.test(phoneDigits)) {
+      errors.nomorHp =
+        "Nomor telepon tidak valid. Gunakan format 08xxxxxxxxxx atau 62xxxxxxxxxx";
+    }
   }
   if (!state.alamat || state.alamat === "")
     errors.alamat = "Alamat wajib diisi";

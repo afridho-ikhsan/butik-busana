@@ -185,6 +185,9 @@ export async function orderTokenizer({
         order_id: midtransOrderId,
         gross_amount,
       },
+      // custom_field dikembalikan di webhook Midtrans (metadata tidak)
+      custom_field1: orderId || "",
+      custom_field2: orderNumber || "",
       metadata: {
         lineItems,
         buyerInfo: {

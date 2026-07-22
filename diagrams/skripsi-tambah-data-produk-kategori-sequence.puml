@@ -1,0 +1,56 @@
+@startuml skripsi_tambah_data_produk_kategori_sequence
+title Sequence Diagram — Tambah Data (Produk, Kategori) oleh Admin\nModul Admin, ProductForm & CollectionForm
+
+skinparam SequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam ParticipantPadding 15
+skinparam BoxPadding 15
+skinparam DefaultFontSize 15
+skinparam ArrowFontSize 13
+skinparam ParticipantFontSize 15
+
+actor Admin as pengguna
+participant "Aplikasi Butik Busana\n(Klien)" as klien
+participant "Server Next.js\n(Aksi & API)" as server
+database "BasisData\n(Prisma)" as db
+
+pengguna -> klien: Mengisi formulir data (Produk/Kategori)
+activate klien
+
+pengguna -> klien: Menekan tombol "Simpan"
+
+klien -> klien: Validasi input data (Zod resolver)
+
+alt Validasi Klien Gagal
+  klien -> pengguna: Menampilkan pesan kesalahan input
+else Validasi Klien Sukses
+  opt Menambahkan Kategori Baru Secara Asinkron
+    klien -> server: POST /api/admin/collections { name, slug }
+    activate server
+    server -> server: Memvalidasi otorisasi peran (admin/owner)
+    server -> db: prisma.collection.create()
+    activate db
+    db --> server: Data kategori tersimpan
+    deactivate db
+    server --> klien: Respons sukses kategori (JSON)
+    deactivate server
+  end
+
+  klien -> server: POST /api/admin/products { payload }
+  activate server
+  server -> server: Memvalidasi otorisasi peran (admin/owner)
+  server -> server: Memvalidasi data input di sisi server
+  server -> db: prisma.product.create()
+  activate db
+  db --> server: Data produk tersimpan
+  deactivate db
+  server --> klien: Respons sukses produk (JSON)
+  deactivate server
+
+  klien -> klien: Memperbarui tampilan katalog secara otomatis (router.push)
+  klien -> pengguna: Menampilkan pesan sukses & dialihkan ke halaman daftar produk
+end
+
+deactivate klien
+
+@enduml

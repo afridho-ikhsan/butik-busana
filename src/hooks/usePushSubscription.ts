@@ -64,7 +64,7 @@ export type SubscribeResult =
 function pushSubscribeErrorMessage(error: unknown): string {
   if (error instanceof DOMException) {
     if (error.name === "AbortError") {
-      return "Push service menolak registrasi. Regenerate VAPID (node scripts/generate-vapid.js), pastikan public & private satu pasang, unregister semua service worker di DevTools, lalu refresh.";
+      return "Peramban anda tidak mendukung push notifikasi";
     }
     return error.message || error.name;
   }

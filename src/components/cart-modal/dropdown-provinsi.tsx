@@ -1,13 +1,5 @@
 import { useGetProvinces } from "@/utils/location-utils";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select } from "antd";
 import { useState } from "react";
 
 const ProvinceSelect = ({
@@ -19,55 +11,37 @@ const ProvinceSelect = ({
   onChange: (value: string) => void;
   validationErrorMessage: string;
 }) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const { provinsi, isLoading } = useGetProvinces(isModalOpen);
+  const [isOpen, setIsOpen] = useState(false);
+  const { provinsi, isLoading } = useGetProvinces(isOpen);
 
   return (
     <div className="input-data">
       <Select
-        open={isModalOpen}
-        onOpenChange={setIsModalOpen}
-        onValueChange={onChange}
-      >
-        <SelectTrigger
-          className={`w-full h-full bg-transparent border-2 border-slate-300 pl-4 pb-3 flex items-center outline-none rounded-lg text-sm focus:border-slate-500 ${
-            value ? "pt-6" : "pt-3"
-          }`}
-          id="provinsi"
-          value={value}
-        >
-          <SelectValue placeholder="Pilih Provinsi" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            <SelectLabel>Provinsi</SelectLabel>
-            {isLoading ? (
-              <SelectItem value="loading ">Memuat...</SelectItem>
-            ) : (
-              provinsi.map((provinsiItem) => (
-                <SelectItem
-                  key={provinsiItem.id}
-                  value={`${provinsiItem.id};${provinsiItem.name}`}
-                >
-                  {provinsiItem.name}
-                </SelectItem>
-              ))
-            )}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
-      <label
-        htmlFor="provinsi"
-        className={`absolute transition-all duration-200 text-slate-400 ${
-          value !== "" ? "text-xs top-1.5 left-4" : "hidden"
-        }`}
-      >
-        Pilih Provinsi
-      </label>
+        showSearch
+        allowClear
+        size="large"
+        className="w-full"
+        id="provinsi"
+        placeholder="Pilih Provinsi"
+        value={value || undefined}
+        onChange={(val) => onChange(val || "")}
+        onOpenChange={setIsOpen}
+        loading={isLoading}
+        status={validationErrorMessage ? "error" : undefined}
+        optionFilterProp="label"
+        filterOption={(input, option) =>
+          String(option?.label ?? "")
+            .toLowerCase()
+            .includes(input.toLowerCase())
+        }
+        options={provinsi.map((item) => ({
+          value: `${item.id};${item.name}`,
+          label: item.name,
+        }))}
+        notFoundContent={isLoading ? "Memuat..." : "Provinsi tidak ditemukan"}
+      />
       {validationErrorMessage && (
-        <p className="validation-error-message">
-          {validationErrorMessage}
-        </p>
+        <p className="validation-error-message">{validationErrorMessage}</p>
       )}
     </div>
   );

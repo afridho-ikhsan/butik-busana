@@ -1,10 +1,43 @@
-import {
-  CheckoutLineItemType,
-  MidtransNotificationMetadata,
-} from "@/types/checkout-types";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { sendPushToUser } from "@/lib/push";
+
+async function resolveOrderFromNotification(body: {
+  order_id?: string;
+  custom_field1?: string;
+  custom_field2?: string;
+  metadata?: { orderId?: string; buyerInfo?: { memberId?: string } };
+}) {
+  const orderIdFromFields =
+    body.custom_field1 || body.metadata?.orderId || "";
+
+  if (orderIdFromFields) {
+    const byId = await prisma.order.findFirst({ where: { id: orderIdFromFields } });
+    if (byId) return byId;
+  }
+
+  const orderNumberFromFields = body.custom_field2 || "";
+  if (orderNumberFromFields) {
+    const byNumber = await prisma.order.findFirst({
+      where: { orderNumber: orderNumberFromFields },
+    });
+    if (byNumber) return byNumber;
+  }
+
+  // order_id Midtrans = `${orderNumber}-${timestamp}`
+  const midtransOrderId = String(body.order_id || "");
+  if (midtransOrderId) {
+    const maybeOrderNumber = midtransOrderId.replace(/-\d+$/, "");
+    if (maybeOrderNumber) {
+      const byParsed = await prisma.order.findFirst({
+        where: { orderNumber: maybeOrderNumber },
+      });
+      if (byParsed) return byParsed;
+    }
+  }
+
+  return null;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,21 +45,30 @@ export async function POST(req: NextRequest) {
       throw new Error("Request body is empty");
     }
     const body = await req.json();
+    console.log("[midtrans-notification]", {
+      order_id: body.order_id,
+      transaction_status: body.transaction_status,
+      custom_field1: body.custom_field1,
+      custom_field2: body.custom_field2,
+    });
+
     const { transaction_status } = body;
+    const order = await resolveOrderFromNotification(body);
 
     if (
       ["deny", "cancel", "expire", "failure"].includes(transaction_status)
     ) {
-      const { buyerInfo: { memberId } = {}, orderId } = body.metadata || {};
-      if (memberId) {
+      if (order?.userId) {
         try {
-          const u = await prisma.user.findUnique({ where: { id: memberId }, select: { slug: true } });
-          const baseUrl = u?.slug ? `/user/${u.slug}/transactions` : "/";
-          const url = orderId ? `${baseUrl}/${orderId}` : baseUrl;
-          await sendPushToUser(memberId, {
+          const u = await prisma.user.findUnique({
+            where: { id: order.userId },
+            select: { slug: true },
+          });
+          const baseUrl = u?.slug ? `/user/${u.slug}/transactions` : `/order/${order.id}`;
+          await sendPushToUser(order.userId, {
             title: "Pembayaran Gagal",
             body: "Pembayaran tidak berhasil. Silakan coba lagi atau gunakan metode pembayaran lain.",
-            url,
+            url: baseUrl,
             tag: "payment-failed",
           });
         } catch (_e) {}
@@ -35,24 +77,20 @@ export async function POST(req: NextRequest) {
     }
 
     if (["settlement", "capture"].includes(transaction_status)) {
-      const {
-        buyerInfo: { memberId },
-        orderId,
-      } = body.metadata as MidtransNotificationMetadata & { orderId?: string };
-
-      const user = await prisma.user.findFirst({
-        where: { id: memberId },
-      });
-      if (!user) {
-        return NextResponse.json({ error: "User not found" }, { status: 400 });
+      if (!order) {
+        console.error("[midtrans-notification] Order tidak ditemukan", body.order_id);
+        return NextResponse.json(
+          { error: "Order tidak ditemukan" },
+          { status: 404 }
+        );
       }
 
-      if (!orderId) {
-        return NextResponse.json({ error: "Order ID tidak ditemukan" }, { status: 400 });
+      if (order.paymentStatus === "PAID") {
+        return NextResponse.json({ message: "Pembayaran sudah diproses" });
       }
 
-      const order = await prisma.order.update({
-        where: { id: orderId },
+      const updatedOrder = await prisma.order.update({
+        where: { id: order.id },
         data: {
           status: "APPROVED",
           paymentStatus: "PAID",
@@ -63,9 +101,9 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      const invoiceUrl = `/api/admin/orders/${orderId}/invoice`;
+      const invoiceUrl = `/api/admin/orders/${order.id}/invoice`;
       const existing = await prisma.paymentEvidence.findFirst({
-        where: { orderId },
+        where: { orderId: order.id },
       });
       if (existing) {
         await prisma.paymentEvidence.update({
@@ -75,8 +113,8 @@ export async function POST(req: NextRequest) {
       } else {
         await prisma.paymentEvidence.create({
           data: {
-            orderId,
-            orderNumber: order.orderNumber,
+            orderId: order.id,
+            orderNumber: updatedOrder.orderNumber,
             linkBuktiPembayaran: invoiceUrl,
             namaFoto: "Invoice",
           },
@@ -84,19 +122,28 @@ export async function POST(req: NextRequest) {
       }
 
       try {
-        const txUrl = user.slug ? `/user/${user.slug}/transactions` : "/";
-        await sendPushToUser(memberId, {
-          title: "Pembayaran Berhasil",
-          body: `Pesanan #${order.orderNumber} telah dibayar.`,
-          url: txUrl,
-          tag: "payment-success",
+        const user = await prisma.user.findUnique({
+          where: { id: order.userId },
+          select: { slug: true, email: true },
         });
+        // Jangan push ke akun guest sistem
+        if (user && user.email !== "guest@butik-busana.system") {
+          const txUrl = user.slug
+            ? `/user/${user.slug}/transactions`
+            : `/order/${order.id}`;
+          await sendPushToUser(order.userId, {
+            title: "Pembayaran Berhasil",
+            body: `Pesanan #${updatedOrder.orderNumber} telah dibayar.`,
+            url: txUrl,
+            tag: "payment-success",
+          });
+        }
       } catch (_e) {}
 
       return NextResponse.json({ message: "Pembayaran Berhasil" });
     }
 
-    return NextResponse.json({ message: "Pembayaran Berhasil" });
+    return NextResponse.json({ message: "Status diterima" });
   } catch (error) {
     console.log("error midtrans", error);
     return NextResponse.json({ error: String(error) }, { status: 500 });

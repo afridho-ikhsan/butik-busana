@@ -1,7 +1,7 @@
 "use client";
 
 import { useUnifiedCart } from "@/hooks/useUnifiedCart";
-import { formatPhoneNumber, rupiahFormatter } from "@/utils/number-formatter";
+import { rupiahFormatter } from "@/utils/number-formatter";
 import React, { useEffect, useReducer } from "react";
 import { IoCartOutline } from "react-icons/io5";
 import PrimaryButton from "../primary-button";
@@ -353,29 +353,12 @@ function CartModal() {
                       aria-label="Nomor Telepon"
                       value={nomorHp}
                       onChange={(e) => {
-                        const input = e.target.value;
-                        const cleanedPhone = input.replace(/\D/g, "");
-                        if (cleanedPhone.length === 0) {
-                          dispatch({
-                            type: ActionType.SET_STATE,
-                            changedStateAttr: "nomorHp",
-                            payload: "",
-                          });
-                          return;
-                        }
-                        if (cleanedPhone.startsWith("62")) {
-                          dispatch({
-                            type: ActionType.SET_STATE,
-                            changedStateAttr: "nomorHp",
-                            payload: formatPhoneNumber(cleanedPhone),
-                          });
-                        } else {
-                          dispatch({
-                            type: ActionType.SET_STATE,
-                            changedStateAttr: "nomorHp",
-                            payload: cleanedPhone,
-                          });
-                        }
+                        const cleanedPhone = e.target.value.replace(/\D/g, "");
+                        dispatch({
+                          type: ActionType.SET_STATE,
+                          changedStateAttr: "nomorHp",
+                          payload: cleanedPhone,
+                        });
                       }}
                       status={errors.nomorHp ? "error" : undefined}
                       size="large"
@@ -452,7 +435,7 @@ function CartModal() {
                     isDisabled={!provinsi || !kota || !kecamatan}
                     kurir={kurir}
                     kecamatan={kecamatan}
-                    ongkir={ongkir}
+                    layananKurir={layananKurir}
                     onChangeKurir={async (val) => {
                       dispatch({
                         type: ActionType.CHOOSE_KURIR,

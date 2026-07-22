@@ -193,7 +193,7 @@ function PushNotificationPromptContent() {
               ? "Nonaktifkan notifikasi"
               : "Aktifkan notifikasi"}
       </Button>
-      {showTestPushButton && (
+      {/* {showTestPushButton && (
         <Button
           type="text"
           size="small"
@@ -203,7 +203,7 @@ function PushNotificationPromptContent() {
         >
           Test Push
         </Button>
-      )}
+      )} */}
     </Flex>
   );
 }

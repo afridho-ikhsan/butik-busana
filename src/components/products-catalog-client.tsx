@@ -52,7 +52,7 @@ function controlledQueryFromRecord(record: SearchRecord): string {
   return params.toString();
 }
 
-export function   ProductsCatalogClient({
+export function ProductsCatalogClient({
   initialSearchParams,
 }: {
   initialSearchParams: SearchRecord;
@@ -93,17 +93,17 @@ export function   ProductsCatalogClient({
   const [listState, setListState] = useState<
     | { status: "loading" }
     | {
-        status: "ready";
-        items: Array<{
-          name: string;
-          slug: string;
-          price: number;
-          discountedPrice?: number | null;
-          quantity: number;
-          media: unknown;
-          updatedAt: string | Date | null;
-        }>;
-      }
+      status: "ready";
+      items: Array<{
+        name: string;
+        slug: string;
+        price: number;
+        discountedPrice?: number | null;
+        quantity: number;
+        media: unknown;
+        updatedAt: string | Date | null;
+      }>;
+    }
     | { status: "empty" }
   >({ status: "loading" });
 
@@ -161,8 +161,7 @@ export function   ProductsCatalogClient({
   if (listState.status === "empty") {
     return (
       <div className="min-h-[30rem] py-12 text-center text-slate-600">
-        Belum ada katalog tersimpan untuk tampilan ini. Sambungkan internet
-        sekali, lalu buka halaman ini lagi agar data tersimpan di perangkat.
+        Belum ada katalog tersimpan untuk tampilan ini.
       </div>
     );
   }

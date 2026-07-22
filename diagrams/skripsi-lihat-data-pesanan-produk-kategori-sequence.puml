@@ -1,0 +1,50 @@
+@startuml skripsi_lihat_data_pesanan_produk_kategori_sequence
+title Sequence Diagram — Lihat Data (Pesanan, Produk, Kategori) oleh Admin\nModul Admin Dashboard, Server Components & DataTable
+
+skinparam SequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam ParticipantPadding 15
+skinparam BoxPadding 15
+skinparam DefaultFontSize 15
+skinparam ArrowFontSize 13
+skinparam ParticipantFontSize 15
+
+actor Admin as pengguna
+participant "Aplikasi Butik Busana\n(Klien)" as klien
+participant "Server Next.js\n(Server Component)" as server
+database "BasisData\n(Prisma)" as db
+
+pengguna -> klien: Mengakses menu manajemen pada dashboard\n(Pesanan / Produk / Kategori)
+activate klien
+
+klien -> server: Meminta halaman dengan query param pencarian/penyaringan (SSR/RSC)
+activate server
+
+alt Halaman Manajemen Kategori (/admin/collections)
+  server -> db: prisma.collection.findMany() & count()
+  activate db
+  db --> server: Daftar data kategori & jumlah total
+  deactivate db
+  
+else Halaman Manajemen Produk (/admin/products)
+  server -> db: prisma.product.findMany(), count(), & collection.findMany()
+  activate db
+  db --> server: Daftar data produk, jumlah total & kategori relasi
+  deactivate db
+
+else Halaman Manajemen Pesanan (/admin/orders)
+  server -> db: prisma.order.findMany() (include: user & paymentEvidences) & count()
+  activate db
+  db --> server: Daftar data pesanan, info pelanggan, bukti pembayaran, & jumlah total
+  deactivate db
+end
+
+server -> server: Merender Server Component (RSC)\nke dalam format HTML / UI Node
+server --> klien: Mengembalikan payload halaman HTML & RSC ter-render
+deactivate server
+
+klien -> klien: Memuat data ke tabel interaktif (DataTable)
+klien --> pengguna: Menampilkan daftar data terpusat (pesanan, produk, atau kategori)\nbeserta opsi pencarian, filter, dan pagination
+deactivate klien
+
+@enduml

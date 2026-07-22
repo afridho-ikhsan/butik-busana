@@ -1,14 +1,6 @@
 import { useGetDistrictsByCity } from "@/utils/location-utils";
+import { Select } from "antd";
 import { useState } from "react";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 function DropdownDistrict({
   value,
@@ -21,57 +13,40 @@ function DropdownDistrict({
   kota: string;
   validationErrorMessage: string;
 }) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const kotaId = kota.split(";")[0];
-  const { kecamatan, isLoading } = useGetDistrictsByCity(kotaId, isModalOpen);
+  const { kecamatan, isLoading } = useGetDistrictsByCity(kotaId, isOpen);
+  const disabled = !kota;
 
   return (
     <div className="input-data">
       <Select
-        open={isModalOpen}
-        onOpenChange={setIsModalOpen}
-        onValueChange={onChange}
-        disabled={kota === ""}
-      >
-        <SelectTrigger
-          className={`w-full h-full bg-transparent border-2 border-slate-300 pl-4 pb-3 flex items-center outline-none rounded-lg text-sm focus:border-slate-500 ${
-            value ? "pt-6" : "pt-3"
-          } ${kota === "" ? "cursor-not-allowed" : "cursor-pointer"}`}
-          id="provinsi"
-          value={value}
-        >
-          <SelectValue placeholder="Pilih Kecamatan" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            <SelectLabel>Kecamatan</SelectLabel>
-            {isLoading ? (
-              <SelectItem value="loading ">Memuat...</SelectItem>
-            ) : (
-              kecamatan.map((kecamatanItem) => (
-                <SelectItem
-                  key={kecamatanItem.id}
-                  value={`${kecamatanItem.name}`}
-                >
-                  {kecamatanItem.name}
-                </SelectItem>
-              ))
-            )}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
-      <label
-        htmlFor="district"
-        className={`absolute transition-all duration-200 text-slate-400 ${
-          value ? "text-xs top-1.5 left-4" : "hidden"
-        }`}
-      >
-        Pilih Kecamatan
-      </label>
+        showSearch
+        allowClear
+        size="large"
+        className="w-full"
+        id="kecamatan"
+        placeholder="Pilih Kecamatan"
+        value={value || undefined}
+        onChange={(val) => onChange(val || "")}
+        onOpenChange={setIsOpen}
+        disabled={disabled}
+        loading={isLoading}
+        status={validationErrorMessage ? "error" : undefined}
+        optionFilterProp="label"
+        filterOption={(input, option) =>
+          String(option?.label ?? "")
+            .toLowerCase()
+            .includes(input.toLowerCase())
+        }
+        options={kecamatan.map((item) => ({
+          value: item.name,
+          label: item.name,
+        }))}
+        notFoundContent={isLoading ? "Memuat..." : "Kecamatan tidak ditemukan"}
+      />
       {validationErrorMessage && (
-        <p className="validation-error-message">
-          {validationErrorMessage}
-        </p>
+        <p className="validation-error-message">{validationErrorMessage}</p>
       )}
     </div>
   );
